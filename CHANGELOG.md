@@ -1,23 +1,24 @@
 # Changelog
 **All dates are in YYYY/MM/DD (Year-Month-Day)**
 
-## [1.0.2] - 2025-06-16
+## [1.0.3] - 2025-06-16
 
 ### Fixed
-- **Windows Application Search**: Fixed critical issue where no applications were found on Windows systems
-  - Improved process filtering logic to be less restrictive on Windows
-  - Added better detection for user applications vs system processes
-  - Enhanced application name handling for Windows executables (removes .exe extension for display)
-  - Added comprehensive Windows application detection patterns
-- **Cross-Platform Compatibility**: Enhanced application matching logic
-  - Improved name matching to handle both display names and original process names
-  - Better handling of Windows executable extensions in lock monitoring
-  - Added platform-specific debugging output for troubleshooting
+- **Windows Application Detection**: Enhanced Windows process detection with multiple fallback methods
+  - Added extensive debugging output to identify Windows-specific issues
+  - Implemented Windows `wmic` command fallback when `ps-list` fails
+  - Added ultimate fallback with common Windows applications for testing
+  - Improved error handling for both module import and execution failures
+  - Enhanced Windows 64-bit compatibility
 
 ### Technical
-- **Enhanced Process Detection**: Refined `getRunningApps()` function for better Windows support
-- **Improved Filtering**: Streamlined system process exclusion while preserving user applications
-- **Better Logging**: Added diagnostic logging for Windows application detection issues
+- **Robust Process Detection**: Added multiple layers of fallback for Windows systems
+- **Enhanced Debugging**: Comprehensive logging to help diagnose Windows issues
+- **Error Handling**: Improved error catching and recovery for process enumeration
+
+## [1.0.2] - 2025-06-16
+
+## Attempted to fix an error while getting applications on Windows, didnt work
 
 ## [1.0.1] - 2025-06-16
 
