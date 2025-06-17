@@ -1,6 +1,19 @@
 # Changelog
 **All dates are in YYYY/MM/DD (Year-Month-Day)**
 
+## [1.0.4] - 2025-06-17
+
+### Fixed Update System
+- **Fixed version comparison logic**: Corrected the `compareVersions` function that was incorrectly treating newer remote versions as "no update available"
+- **Fixed changelog URL**: Updated from `changelog.md` to `CHANGELOG.md` to match actual filename
+- **Enhanced update detection**: Now properly detects when remote version (1.0.3) is newer than current version (1.0.0)
+
+### Improved Update Modal Design
+- **Responsive sizing**: Modal now uses 70% viewport width and 90% viewport height for better space utilization
+- **Enhanced markdown rendering**: Improved changelog formatting with proper parsing of version headers like `[1.0.3] - 2025-06-16`
+- **Better typography**: Added styled version headers with gradient backgrounds and improved readability
+- **Flexible layout**: Converted to flexbox layout ensuring content adapts to available space with proper scrolling
+
 ## [1.0.3] - 2025-06-16
 
 ## Attempted to fix an error while getting applications on Windows, didnt work

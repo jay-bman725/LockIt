@@ -1,6 +1,6 @@
 {
   "name": "lockit",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "🔐 LockIt - Application Lock Utility for Desktop",
   "main": "src/main/main.js",
   "scripts": {

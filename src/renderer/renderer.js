@@ -573,21 +573,43 @@ function showUpdateModal(updateInfo) {
 function formatChangelog(changelogText) {
     // Convert markdown-like formatting to HTML
     let formattedText = changelogText
+        // Headers
         .replace(/^### (.*$)/gim, '<h3>$1</h3>')
         .replace(/^## (.*$)/gim, '<h2>$1</h2>')
         .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-        .replace(/^\*\*([^*]+)\*\*:/gim, '<strong>$1:</strong>')
-        .replace(/^- (.*$)/gim, '<li>$1</li>')
+        
+        // Version headers with brackets and dates
+        .replace(/^\[([^\]]+)\]\s*-\s*([0-9]{4}-[0-9]{2}-[0-9]{2})$/gim, '<h3 class="version-header">🏷️ Version $1 <span class="version-date">($2)</span></h3>')
+        
+        // Bold text
+        .replace(/^\*\*([^*]+)\*\*:?/gim, '<strong>$1:</strong>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        
+        // Code blocks and inline code
         .replace(/`([^`]+)`/g, '<code>$1</code>')
+        
+        // Lists
+        .replace(/^- (.*$)/gim, '<li>$1</li>')
+        .replace(/^\* (.*$)/gim, '<li>$1</li>')
+        
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        
+        // Line breaks and paragraphs
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
     
     // Wrap consecutive list items in ul tags
-    formattedText = formattedText.replace(/(<li>.*?<\/li>)(\s*<li>.*?<\/li>)*/gs, (match) => {
-        return '<ul>' + match + '</ul>';
+    formattedText = formattedText.replace(/(<li>.*?<\/li>)(\s*<br>\s*<li>.*?<\/li>)*/gs, (match) => {
+        const cleanMatch = match.replace(/<br>\s*/g, '');
+        return '<ul>' + cleanMatch + '</ul>';
     });
     
-    // Wrap in paragraphs
+    // Clean up extra line breaks around headers
+    formattedText = formattedText.replace(/<br>\s*(<h[1-6])/g, '$1');
+    formattedText = formattedText.replace(/(<\/h[1-6]>)\s*<br>/g, '$1');
+    
+    // Wrap in paragraphs if not starting with header or list
     if (!formattedText.startsWith('<h') && !formattedText.startsWith('<ul')) {
         formattedText = '<p>' + formattedText + '</p>';
     }

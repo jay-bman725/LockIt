@@ -36,7 +36,7 @@ const store = new Store({
 // Update checking configuration
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/jay-bman725/LockIt/refs/heads/main/version',
-  changelogUrl: 'https://raw.githubusercontent.com/jay-bman725/LockIt/refs/heads/main/changelog.md',
+  changelogUrl: 'https://raw.githubusercontent.com/jay-bman725/LockIt/refs/heads/main/CHANGELOG.md',
   releaseBaseUrl: 'https://github.com/jay-bman725/LockIt/releases/tag/v',
   checkInterval: 24 * 60 * 60 * 1000 // Check once per day
 };
@@ -761,8 +761,8 @@ function compareVersions(current, remote) {
     const currentPart = currentParts[i] || 0;
     const remotePart = remoteParts[i] || 0;
     
-    if (remotePart > currentPart) return 1; // Remote is newer
-    if (remotePart < currentPart) return -1; // Current is newer
+    if (currentPart > remotePart) return 1; // Current is newer
+    if (currentPart < remotePart) return -1; // Remote is newer
   }
   
   return 0; // Versions are equal
@@ -785,7 +785,7 @@ async function checkForUpdates(manual = false) {
     const comparison = compareVersions(currentVersion, remoteVersion);
     
     if (comparison >= 0) {
-      // No update available or current version is newer
+      // No update available (current is newer or equal)
       console.log('✅ No updates available');
       if (manual) {
         return { hasUpdate: false, message: 'You are running the latest version!' };
