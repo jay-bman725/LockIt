@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 Security Lockdown - LockIt</title>
+    <link rel="stylesheet" href="security-lockdown-styles.css">
+</head>
+<body>
+    <div class="lockdown-container">
+        <!-- Security Alert Header -->
+        <div class="alert-header">
+            <div class="alert-icon">🚨</div>
+            <h1>SECURITY LOCKDOWN ACTIVATED</h1>
+            <div class="alert-subtitle">System protection mode enabled</div>
+        </div>
+
+        <!-- Lockdown Information -->
+        <div class="lockdown-info">
+            <div class="info-card">
+                <div class="info-icon">🔒</div>
+                <h2>System Locked</h2>
+                <p>Too many failed PIN attempts have been detected. For security purposes, the system has been locked.</p>
+            </div>
+
+            <div class="attempts-info">
+                <div class="attempts-header">
+                    <span class="attempts-icon">⚠️</span>
+                    <span>Failed Attempts Detected</span>
+                </div>
+                <div class="attempts-details">
+                    <div class="attempt-item">
+                        <span>PIN Attempts:</span>
+                        <span class="attempts-count">10/10</span>
+                    </div>
+                    <div class="attempt-item">
+                        <span>Lockdown Time:</span>
+                        <span id="lockdownTime">Just now</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recovery Section -->
+        <div class="recovery-section">
+            <div class="recovery-header">
+                <div class="recovery-icon">🛡️</div>
+                <h2>Recovery Options</h2>
+                <p>Use your master password to recover access to the system</p>
+            </div>
+
+            <!-- Master Password Form -->
+            <div class="master-password-form" id="masterPasswordForm">
+                <div class="form-group">
+                    <label for="masterPasswordInput">Master Password:</label>
+                    <input type="password" id="masterPasswordInput" placeholder="Enter your master password" autocomplete="current-password">
+                    <small>This is the master password you set during initial setup</small>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="verifyMasterPassword()">
+                        Verify Master Password
+                    </button>
+                </div>
+            </div>
+
+            <!-- PIN Change Options (shown after master password verification) -->
+            <div class="pin-change-section" id="pinChangeSection" style="display: none;">
+                <div class="pin-change-header">
+                    <div class="success-icon">✅</div>
+                    <h3>Master Password Verified</h3>
+                    <p>Choose what you'd like to do next:</p>
+                </div>
+
+                <div class="pin-options">
+                    <div class="option-card">
+                        <div class="option-icon">🔄</div>
+                        <h4>Change PIN</h4>
+                        <p>Set a new PIN and continue using LockIt</p>
+                        <button class="btn btn-secondary" onclick="showPinChangeForm()">
+                            Change PIN
+                        </button>
+                    </div>
+
+                    <div class="option-card">
+                        <div class="option-icon">🔓</div>
+                        <h4>Keep Current PIN</h4>
+                        <p>Continue with your existing PIN</p>
+                        <button class="btn btn-success" onclick="recoverWithCurrentPin()">
+                            Keep PIN & Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PIN Change Form -->
+            <div class="pin-change-form" id="pinChangeForm" style="display: none;">
+                <div class="form-group">
+                    <label for="newPinInput">New PIN:</label>
+                    <input type="password" id="newPinInput" placeholder="Enter new 5-digit PIN" maxlength="5" autocomplete="new-password">
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmNewPinInput">Confirm New PIN:</label>
+                    <input type="password" id="confirmNewPinInput" placeholder="Confirm new 5-digit PIN" maxlength="5" autocomplete="new-password">
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-secondary" onclick="backToOptions()">Back</button>
+                    <button class="btn btn-primary" onclick="changePin()">Update PIN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState" style="display: none;">
+            <div class="loading-content">
+                <div class="loading-spinner">⏳</div>
+                <h3>Processing...</h3>
+                <p id="loadingMessage">Verifying master password...</p>
+            </div>
+        </div>
+
+        <!-- Security Instructions -->
+        <div class="security-instructions">
+            <div class="instruction-header">
+                <span class="instruction-icon">💡</span>
+                <span>Security Information</span>
+            </div>
+            <div class="instruction-content">
+                <ul>
+                    <li>This lockdown activates after 10 consecutive failed PIN attempts</li>
+                    <li>Only the master password can unlock the system during lockdown</li>
+                    <li>The system will return to normal operation after verification</li>
+                    <li>Consider changing your PIN if you suspect it has been compromised</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="error-toast">
+        <span id="errorMessage"></span>
+        <button onclick="hideError()" class="close-btn">×</button>
+    </div>
+
+    <script src="security-lockdown-renderer.js"></script>
+</body>
+</html>

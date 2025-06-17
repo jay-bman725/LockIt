@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Application Locked</title>
+    <link rel="stylesheet" href="lock-styles.css">
+</head>
+<body>
+    <div class="lock-overlay">
+        <!-- Background pattern -->
+        <div class="lock-background"></div>
+        
+        <!-- Lock screen content -->
+        <div class="lock-container">
+            <!-- Header -->
+            <div class="lock-header">
+                <div class="lock-icon">🔐</div>
+                <h1>Application Locked</h1>
+                <p id="appMessage">This application is protected by LockIt</p>
+            </div>
+
+            <!-- PIN Entry Form -->
+            <div class="pin-form">
+                <label for="pinInput">Enter your PIN to unlock:</label>
+                <div class="pin-input-container">
+                    <input type="password" id="pinInput" placeholder="Enter 5-digit PIN" maxlength="5" autocomplete="off" autofocus>
+                    <button id="unlockBtn" class="unlock-btn">
+                        🔓 Unlock
+                    </button>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="info-section">
+                <div class="info-item">
+                    <span class="info-icon">⏰</span>
+                    <span id="unlockDuration">Unlock duration: 1 minute</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-icon">🔒</span>
+                    <span>Locked by LockIt</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="lock-actions">
+                <button id="settingsBtn" class="action-btn secondary">
+                    ⚙️ Settings
+                </button>
+                <button id="helpBtn" class="action-btn secondary">
+                    ❓ Help
+                </button>
+            </div>
+
+            <!-- Powered by -->
+            <div class="powered-by">
+                <p>Powered by <strong>LockIt</strong> • Application Lock Utility</p>
+            </div>
+        </div>
+
+        <!-- Particles Effect -->
+        <div class="particles">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+        </div>
+    </div>
+
+    <script src="lock-renderer.js"></script>
+</body>
+</html>

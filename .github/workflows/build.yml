@@ -1,0 +1,158 @@
+name: Build and Release Electron App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  read-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from file
+        id: get-version
+        run: echo "VERSION=$(cat version)" >> $GITHUB_OUTPUT
+
+  build-linux:
+    needs: read-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for Linux
+        run: npx electron-builder --linux
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Upload Linux installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+
+  build-windows:
+    needs: read-version
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for Windows ${{ matrix.arch }}
+        run: npx electron-builder --win --${{ matrix.arch }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-${{ matrix.arch }}
+          path: dist/*.exe
+
+  build-macos:
+    needs: read-version
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS x64
+        run: npx electron-builder --mac --x64
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Build macOS arm64
+        run: npx electron-builder --mac --arm64
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Upload macOS installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: dist/*.dmg
+
+  release:
+    needs: [build-linux, build-windows, build-macos, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: combined-artifacts
+
+      - name: List artifact directory contents
+        run: find combined-artifacts
+
+      - name: Rename files for release
+        run: |
+          VERSION="v${{ needs.read-version.outputs.version }}"
+          mkdir renamed
+
+          # Linux
+          for f in combined-artifacts/linux-build/*; do
+            ext="${f##*.}"
+            cp "$f" "renamed/linux-LockIt-${VERSION}.${ext}"
+          done
+
+          # Windows
+          for f in combined-artifacts/windows-build-x64/*; do
+            cp "$f" "renamed/windows-LockIt-${VERSION}-x64.exe"
+          done
+
+          for f in combined-artifacts/windows-build-arm64/*; do
+            cp "$f" "renamed/windows-LockIt-${VERSION}-arm64.exe"
+          done
+
+          # macOS
+          i=0
+          for f in combined-artifacts/macos-build/*.dmg; do
+            if [ "$i" -eq 0 ]; then
+              cp "$f" "renamed/macos-LockIt-${VERSION}-x64.dmg"
+            else
+              cp "$f" "renamed/macos-LockIt-${VERSION}-arm64.dmg"
+            fi
+            i=$((i + 1))
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.read-version.outputs.version }}
+          name: v${{ needs.read-version.outputs.version }}
+          files: renamed/*
+          token: ${{ secrets.GH_PAT }}

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 LockIt - Welcome & Setup</title>
+    <link rel="stylesheet" href="onboarding-styles.css">
+</head>
+<body>
+    <div class="onboarding-container">
+        <!-- Progress Indicator -->
+        <div class="progress-bar">
+            <div class="progress-step active" data-step="1">1</div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="2">2</div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="3">3</div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="4">4</div>
+        </div>
+
+        <!-- Step 1: Welcome -->
+        <div class="step-content" data-step="1">
+            <div class="welcome-header">
+                <div class="logo">
+                    <span class="logo-icon">🔐</span>
+                    <h1>Welcome to LockIt</h1>
+                </div>
+                <p class="subtitle">Your Desktop Application Lock Utility</p>
+            </div>
+            
+            <div class="feature-showcase">
+                <div class="feature-item">
+                    <span class="feature-icon">🔒</span>
+                    <h3>Lock Applications</h3>
+                    <p>Protect any application with a secure PIN</p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🔍</span>
+                    <h3>Background Monitoring</h3>
+                    <p>Automatically detect when locked apps are opened</p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🛡️</span>
+                    <h3>Security Features</h3>
+                    <p>Master password protection and security lockdown</p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚙️</span>
+                    <h3>Customizable</h3>
+                    <p>Configure unlock duration and security settings</p>
+                </div>
+            </div>
+
+            <div class="step-actions">
+                <button class="btn btn-primary" onclick="nextStep()">Get Started</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Security PIN Setup -->
+        <div class="step-content" data-step="2" style="display: none;">
+            <div class="step-header">
+                <h2>🔐 Set Your Security PIN</h2>
+                <p>This PIN will be required to unlock protected applications</p>
+            </div>
+
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="pinSetup">Choose Your PIN:</label>
+                    <input type="password" id="pinSetup" placeholder="Enter a 5-digit PIN" maxlength="5" autocomplete="new-password">
+                    <small>Use exactly 5 digits for your PIN</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="pinConfirm">Confirm Your PIN:</label>
+                    <input type="password" id="pinConfirm" placeholder="Re-enter your 5-digit PIN" maxlength="5" autocomplete="new-password">
+                </div>
+
+                <div class="security-notice">
+                    <span class="notice-icon">⚠️</span>
+                    <div>
+                        <strong>Important:</strong> Remember this PIN carefully. After 10 failed attempts, 
+                        the system will enter security lockdown and require your master password to recover.
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-actions">
+                <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                <button class="btn btn-primary" onclick="validatePinAndNext()">Continue</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Master Password Setup -->
+        <div class="step-content" data-step="3" style="display: none;">
+            <div class="step-header">
+                <h2>🛡️ Set Your Master Password</h2>
+                <p>This password will recover the system if you forget your PIN or trigger security lockdown</p>
+            </div>
+
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="masterPasswordSetup">Master Password:</label>
+                    <input type="password" id="masterPasswordSetup" placeholder="Enter a strong master password" autocomplete="new-password">
+                    <small>Use a strong, memorable password different from your PIN</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="masterPasswordConfirm">Confirm Master Password:</label>
+                    <input type="password" id="masterPasswordConfirm" placeholder="Re-enter your master password" autocomplete="new-password">
+                </div>
+
+                <div class="master-password-info">
+                    <div class="info-item">
+                        <span class="info-icon">🚨</span>
+                        <div>
+                            <strong>Security Lockdown:</strong> After 10 failed PIN attempts, only this master password can unlock the system
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">🔄</span>
+                        <div>
+                            <strong>PIN Recovery:</strong> Use this password to change your PIN if you forget it
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-actions">
+                <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                <button class="btn btn-primary" onclick="validateMasterPasswordAndNext()">Continue</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Unlock Duration & Final Setup -->
+        <div class="step-content" data-step="4" style="display: none;">
+            <div class="step-header">
+                <h2>⏰ Choose Unlock Duration</h2>
+                <p>How long should applications stay unlocked after entering your PIN?</p>
+            </div>
+
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="unlockDurationSetup">Unlock Duration:</label>
+                    <select id="unlockDurationSetup">
+                        <option value="30000">30 seconds</option>
+                        <option value="60000">1 minute</option>
+                        <option value="300000">5 minutes</option>
+                        <option value="600000">10 minutes</option>
+                        <option value="1800000">30 minutes</option>
+                        <option value="3600000">1 hour</option>
+                    </select>
+                    <small>Applications will automatically lock again after this time period</small>
+                </div>
+
+                <div class="setup-summary">
+                    <h3>Setup Summary</h3>
+                    <div class="summary-item">
+                        <span class="summary-label">PIN:</span>
+                        <span class="summary-value">••••••••</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Master Password:</span>
+                        <span class="summary-value">••••••••••••</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Unlock Duration:</span>
+                        <span class="summary-value" id="durationSummary">1 minute</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-actions">
+                <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                <button class="btn btn-success" onclick="completeOnboarding()">Complete Setup</button>
+            </div>
+        </div>
+
+        <!-- Loading/Completion State -->
+        <div class="completion-state" style="display: none;">
+            <div class="completion-content">
+                <div class="completion-icon">✅</div>
+                <h2>Setup Complete!</h2>
+                <p>LockIt is now configured and ready to protect your applications.</p>
+                <div class="loading-spinner">⏳</div>
+                <p>Loading main application...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="error-toast">
+        <span id="errorMessage"></span>
+        <button onclick="hideError()" class="close-btn">×</button>
+    </div>
+
+    <script src="onboarding-renderer.js"></script>
+</body>
+</html>

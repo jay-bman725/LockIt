@@ -1,0 +1,22 @@
+{
+  "name": "lockit",
+  "version": "1.0.0",
+  "description": "🔐 LockIt - Application Lock Utility for Desktop",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --remote-debugging-port=9222",
+    "build": "echo 'Build script placeholder - add electron-builder here'",
+    "lint": "echo 'Linting placeholder - add ESLint here'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["electron", "desktop", "app-lock", "security"],
+  "author": "LockIt Team",
+  "license": "MIT",
+  "dependencies": {
+    "active-win": "^8.2.1",
+    "electron": "^36.4.0",
+    "electron-store": "^8.2.0",
+    "ps-list": "^8.1.1"
+  }
+}

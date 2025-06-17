@@ -1,0 +1,413 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    cursor: none;
+}
+
+/* Lock Overlay */
+.lock-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+/* Background Pattern */
+.lock-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 25% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+    background-size: 800px 800px, 600px 600px, 400px 400px, 300px 300px;
+    animation: backgroundMove 20s ease-in-out infinite;
+}
+
+@keyframes backgroundMove {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-20px, -10px); }
+    50% { transform: translate(10px, -20px); }
+    75% { transform: translate(-10px, 10px); }
+}
+
+/* Lock Container */
+.lock-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 40px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.2);
+    text-align: center;
+    max-width: 450px;
+    width: 90%;
+    animation: lockContainerAppear 0.5s ease-out;
+    position: relative;
+    z-index: 10;
+    cursor: auto;
+}
+
+@keyframes lockContainerAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Lock Header */
+.lock-header {
+    margin-bottom: 30px;
+}
+
+.lock-icon {
+    font-size: 64px;
+    margin-bottom: 15px;
+    animation: lockIconPulse 2s ease-in-out infinite;
+}
+
+@keyframes lockIconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.lock-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 8px;
+}
+
+.lock-header p {
+    font-size: 16px;
+    color: #718096;
+    font-weight: 500;
+}
+
+/* PIN Form */
+.pin-form {
+    margin-bottom: 30px;
+}
+
+.pin-form label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 15px;
+}
+
+.pin-input-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#pinInput {
+    flex: 1;
+    padding: 15px 20px;
+    font-size: 18px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    text-align: center;
+    letter-spacing: 3px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+#pinInput:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    transform: scale(1.02);
+}
+
+.unlock-btn {
+    padding: 15px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.unlock-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.unlock-btn:active {
+    transform: translateY(0);
+}
+
+.unlock-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Error Message */
+.error-message {
+    color: #e53e3e;
+    font-size: 14px;
+    font-weight: 500;
+    min-height: 20px;
+    margin-top: 5px;
+    animation: errorShake 0.5s ease-in-out;
+}
+
+@keyframes errorShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Info Section */
+.info-section {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: rgba(237, 242, 247, 0.6);
+    border-radius: 12px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.info-icon {
+    font-size: 16px;
+}
+
+/* Lock Actions */
+.lock-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.action-btn {
+    padding: 10px 16px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    color: #4a5568;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    border-color: #cbd5e0;
+    background: #f7fafc;
+    transform: translateY(-1px);
+}
+
+.action-btn.secondary {
+    border-color: #cbd5e0;
+    color: #718096;
+}
+
+/* Powered By */
+.powered-by {
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    padding-top: 15px;
+    margin-top: 10px;
+}
+
+.powered-by p {
+    font-size: 12px;
+    color: #a0aec0;
+    font-weight: 500;
+}
+
+.powered-by strong {
+    color: #4a5568;
+}
+
+/* Particles Effect */
+.particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: particleFloat 15s linear infinite;
+}
+
+.particle:nth-child(1) {
+    left: 10%;
+    animation-delay: 0s;
+    animation-duration: 12s;
+}
+
+.particle:nth-child(2) {
+    left: 20%;
+    animation-delay: 2s;
+    animation-duration: 15s;
+}
+
+.particle:nth-child(3) {
+    left: 30%;
+    animation-delay: 4s;
+    animation-duration: 10s;
+}
+
+.particle:nth-child(4) {
+    left: 40%;
+    animation-delay: 6s;
+    animation-duration: 13s;
+}
+
+.particle:nth-child(5) {
+    left: 60%;
+    animation-delay: 1s;
+    animation-duration: 11s;
+}
+
+.particle:nth-child(6) {
+    left: 70%;
+    animation-delay: 3s;
+    animation-duration: 14s;
+}
+
+.particle:nth-child(7) {
+    left: 80%;
+    animation-delay: 5s;
+    animation-duration: 16s;
+}
+
+.particle:nth-child(8) {
+    left: 90%;
+    animation-delay: 7s;
+    animation-duration: 9s;
+}
+
+@keyframes particleFloat {
+    0% {
+        top: 100%;
+        opacity: 0;
+        transform: translateX(0) rotate(0deg);
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        top: -10%;
+        opacity: 0;
+        transform: translateX(100px) rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .lock-container {
+        padding: 30px 25px;
+        margin: 20px;
+    }
+    
+    .lock-icon {
+        font-size: 48px;
+    }
+    
+    .lock-header h1 {
+        font-size: 24px;
+    }
+    
+    .pin-input-container {
+        flex-direction: column;
+    }
+    
+    .unlock-btn {
+        width: 100%;
+    }
+    
+    .lock-actions {
+        flex-direction: column;
+    }
+}
+
+/* Anti-screenshot protection */
+.lock-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.01);
+    z-index: 11;
+    pointer-events: none;
+}
+
+/* Prevent text selection */
+.lock-overlay * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Prevent context menu */
+.lock-overlay {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}

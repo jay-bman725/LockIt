@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 LockIt - Application Lock Utility</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🔐</span>
+                <h1>LockIt</h1>
+            </div>
+            <div class="header-controls">
+                <button id="monitorToggle" class="btn btn-primary">
+                    Start Monitoring
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Status Panel -->
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">Monitoring Status:</span>
+                    <span id="monitoringStatus" class="status-value status-inactive">Inactive</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Locked Apps:</span>
+                    <span id="lockedAppsCount" class="status-value">0</span>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="apps">🔒 Locked Apps</button>
+                <button class="tab-btn" data-tab="available">📱 Available Apps</button>
+                <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Locked Apps Tab -->
+                <div id="apps-tab" class="tab-panel active">
+                    <div class="section-header">
+                        <h2>Currently Locked Applications</h2>
+                        <button id="clearAllBtn" class="btn btn-danger btn-small">
+                            🗑️ Clear All
+                        </button>
+                    </div>
+                    <div id="lockedAppsList" class="apps-list">
+                        <div class="empty-state">
+                            <span class="empty-icon">🔓</span>
+                            <p>No applications are currently locked.</p>
+                            <p>Switch to the "Available Apps" tab to lock some applications.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Apps Tab -->
+                <div id="available-tab" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Available Applications</h2>
+                        <button id="refreshAppsBtn" class="btn btn-secondary btn-small">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="appSearch" placeholder="🔍 Search applications...">
+                    </div>
+                    <div id="availableAppsList" class="apps-list">
+                        <div class="loading">
+                            <span class="loading-spinner">⏳</span>
+                            <p>Loading applications...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settings-tab" class="tab-panel">
+                    <div class="section-header">
+                        <h2>LockIt Settings</h2>
+                    </div>
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label for="pinInput">Security PIN:</label>
+                            <input type="password" id="pinInput" placeholder="Enter 5-digit PIN" maxlength="5">
+                            <small>This PIN will be required to unlock applications.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="unlockDuration">Unlock Duration:</label>
+                            <select id="unlockDuration">
+                                <option value="30000">30 seconds</option>
+                                <option value="60000">1 minute</option>
+                                <option value="300000">5 minutes</option>
+                                <option value="600000">10 minutes</option>
+                                <option value="1800000">30 minutes</option>
+                                <option value="3600000">1 hour</option>
+                            </select>
+                            <small>How long applications stay unlocked after entering the PIN.</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button id="saveSettingsBtn" class="btn btn-primary">
+                                💾 Save Settings
+                            </button>
+                            <button id="resetSettingsBtn" class="btn btn-danger">
+                                🔄 Reconfigure Setup
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- About Section -->
+                    <div class="about-section">
+                        <h3>About LockIt</h3>
+                        <p>LockIt is a desktop application that helps you control access to specific applications on your computer. It's perfect for:</p>
+                        <ul>
+                            <li>🎯 Preventing distractions during work or study</li>
+                            <li>👨‍👩‍👧‍👦 Parental controls for tech-savvy kids</li>
+                            <li>🔒 Adding security to sensitive applications</li>
+                            <li>⏰ Time management and focus improvement</li>
+                        </ul>
+                        <div class="version-info">
+                            <p><strong>Version:</strong> <span id="appVersion">Loading...</span></p>
+                            <p><strong>Built with:</strong> Electron, Node.js</p>
+                        </div>
+                        
+                        <div class="update-section">
+                            <button id="checkUpdateBtn" class="btn btn-outline">
+                                🔍 Check for Updates
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Master Password Modal -->
+    <div id="masterPasswordModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔐 Master Password Required</h3>
+                <p>Please enter your master password to proceed with this action.</p>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modalMasterPasswordInput">Master Password:</label>
+                    <input type="password" id="modalMasterPasswordInput" placeholder="Enter your master password" autocomplete="current-password">
+                    <small>This is the master password you set during initial setup</small>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button id="cancelMasterPasswordBtn" class="btn btn-secondary">Cancel</button>
+                <button id="verifyMasterPasswordBtn" class="btn btn-primary">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Update Available Modal -->
+    <div id="updateModal" class="modal-overlay">
+        <div class="modal-content update-modal">
+            <div class="modal-header">
+                <h3>🚀 Update Available</h3>
+                <p>A new version of LockIt is available for download!</p>
+            </div>
+            
+            <div class="modal-body">
+                <div class="version-info">
+                    <div class="version-comparison">
+                        <div class="version-item">
+                            <span class="version-label">Current Version:</span>
+                            <span id="currentVersionDisplay" class="version-value">-</span>
+                        </div>
+                        <div class="version-arrow">→</div>
+                        <div class="version-item">
+                            <span class="version-label">New Version:</span>
+                            <span id="newVersionDisplay" class="version-value new-version">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="changelog-section">
+                    <h4>📋 What's New:</h4>
+                    <div id="changelogContent" class="changelog-content">
+                        <div class="loading">
+                            <span class="loading-spinner">⏳</span>
+                            <p>Loading changelog...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions update-actions">
+                <button id="declineUpdateBtn" class="btn btn-secondary">⏭️ Later</button>
+                <button id="dismissUpdateBtn" class="btn btn-outline">🚫 Don't Show Again</button>
+                <button id="downloadUpdateBtn" class="btn btn-primary">⬇️ Download Update</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
