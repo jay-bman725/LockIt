@@ -478,63 +478,21 @@ async function getRunningApps() {
         
         // Platform-specific system process filtering
         if (platform === 'win32') {
-          // Windows system processes to exclude
-          const windowsSystemProcesses = [
-            'System', 'Registry', 'smss.exe', 'csrss.exe', 'wininit.exe', 'winlogon.exe',
-            'services.exe', 'lsass.exe', 'lsm.exe', 'svchost.exe', 'audiodg.exe',
-            'dwm.exe', 'explorer.exe', 'taskhost.exe', 'taskhostw.exe', 'spoolsv.exe',
-            'SearchIndexer.exe', 'wmiprvse.exe', 'dllhost.exe', 'rundll32.exe',
-            'conhost.exe', 'fontdrvhost.exe', 'winstore.app', 'runtimebroker.exe',
-            'backgroundtaskhost.exe', 'applicationframehost.exe', 'shellexperiencehost.exe',
-            'searchui.exe', 'startmenuexperiencehost.exe', 'cortana.exe', 'sihost.exe',
-            'ctfmon.exe', 'wisptis.exe', 'tabletinputservice.exe', 'inputpersonalization.exe',
-            'logonui.exe', 'userinit.exe', 'winver.exe', 'wudfhost.exe', 'msiexec.exe'
-          ];
-          
           const lowerName = proc.name.toLowerCase();
           
-          // Exclude Windows system processes
-          if (windowsSystemProcesses.some(sysProc => lowerName === sysProc.toLowerCase())) {
+          // Only exclude the most critical system processes
+          const criticalSystemProcesses = [
+            'system', 'registry', 'smss.exe', 'csrss.exe', 'wininit.exe', 'winlogon.exe',
+            'services.exe', 'lsass.exe', 'svchost.exe', 'conhost.exe'
+          ];
+          
+          // Exclude only critical system processes
+          if (criticalSystemProcesses.some(sysProc => lowerName === sysProc)) {
             return false;
           }
           
-          // Exclude processes that look like Windows services (usually end with .exe and are system-related)
-          if (lowerName.endsWith('.exe')) {
-            // Allow common applications but exclude obvious system processes
-            const allowedApps = [
-              'chrome.exe', 'firefox.exe', 'msedge.exe', 'opera.exe', 'brave.exe',
-              'notepad.exe', 'notepad++.exe', 'code.exe', 'atom.exe', 'sublime_text.exe',
-              'photoshop.exe', 'illustrator.exe', 'premiere.exe', 'aftereffects.exe',
-              'word.exe', 'excel.exe', 'powerpoint.exe', 'outlook.exe', 'teams.exe',
-              'discord.exe', 'slack.exe', 'spotify.exe', 'vlc.exe', 'steam.exe',
-              'game.exe', 'launcher.exe', 'client.exe', 'main.exe', 'app.exe'
-            ];
-            
-            // If it's a known application, allow it
-            if (allowedApps.some(app => lowerName.includes(app.replace('.exe', '')))) {
-              return true;
-            }
-            
-            // Allow applications that are clearly user applications based on their path
-            if (proc.cmd) {
-              const cmdLower = proc.cmd.toLowerCase();
-              // Allow apps from Program Files, user directories, or common app locations
-              if (cmdLower.includes('\\program files\\') || 
-                  cmdLower.includes('\\program files (x86)\\') ||
-                  cmdLower.includes('\\users\\') ||
-                  cmdLower.includes('\\appdata\\local\\') ||
-                  cmdLower.includes('\\steamapps\\') ||
-                  cmdLower.includes('\\games\\')) {
-                return true;
-              }
-            }
-            
-            // Include processes with spaces in name (likely user applications)
-            if (proc.name.includes(' ')) {
-              return true;
-            }
-          }
-          
+          // For Windows, be very permissive - let users see most processes
+          // They can choose what to lock themselves
           return true;
         } else if (platform === 'darwin') {
           // macOS system processes to exclude
