@@ -326,13 +326,29 @@ async function startMonitoring() {
       // Use timestamp as fallback if processId is not available
       const processKey = processId ? `${appName}-${processId}` : `${appName}-${Date.now()}`;
       
-      // Check if current app is locked - use EXACT app name matching only
+      // Check if current app is locked - handle both display and original names
       const lockedApp = lockedApps.find(app => {
         const lockedAppName = app.name.toLowerCase().trim();
         const currentAppName = appName.toLowerCase().trim();
         
-        // Only exact match to prevent false positives
-        return lockedAppName === currentAppName;
+        // Try exact match first
+        if (lockedAppName === currentAppName) {
+          return true;
+        }
+        
+        // On Windows, also try matching with/without .exe extension
+        if (process.platform === 'win32') {
+          // If locked app doesn't have .exe but current app does
+          if (!lockedAppName.endsWith('.exe') && currentAppName.endsWith('.exe')) {
+            return lockedAppName === currentAppName.slice(0, -4);
+          }
+          // If locked app has .exe but current app doesn't
+          if (lockedAppName.endsWith('.exe') && !currentAppName.endsWith('.exe')) {
+            return lockedAppName.slice(0, -4) === currentAppName;
+          }
+        }
+        
+        return false;
       });
 
       if (lockedApp) {
@@ -453,15 +469,98 @@ async function getRunningApps() {
     }
     
     const processes = await psList();
+    const platform = process.platform;
     
-    // Filter to get unique applications (not system processes)
+    // Platform-specific filtering for system processes
     const apps = processes
-      .filter(proc => proc.name && !proc.name.startsWith('com.apple.') && proc.name.length > 2)
+      .filter(proc => {
+        if (!proc.name || proc.name.length < 2) return false;
+        
+        // Platform-specific system process filtering
+        if (platform === 'win32') {
+          // Windows system processes to exclude
+          const windowsSystemProcesses = [
+            'System', 'Registry', 'smss.exe', 'csrss.exe', 'wininit.exe', 'winlogon.exe',
+            'services.exe', 'lsass.exe', 'lsm.exe', 'svchost.exe', 'audiodg.exe',
+            'dwm.exe', 'explorer.exe', 'taskhost.exe', 'taskhostw.exe', 'spoolsv.exe',
+            'SearchIndexer.exe', 'wmiprvse.exe', 'dllhost.exe', 'rundll32.exe',
+            'conhost.exe', 'fontdrvhost.exe', 'winstore.app', 'runtimebroker.exe',
+            'backgroundtaskhost.exe', 'applicationframehost.exe', 'shellexperiencehost.exe',
+            'searchui.exe', 'startmenuexperiencehost.exe', 'cortana.exe', 'sihost.exe',
+            'ctfmon.exe', 'wisptis.exe', 'tabletinputservice.exe', 'inputpersonalization.exe',
+            'logonui.exe', 'userinit.exe', 'winver.exe', 'wudfhost.exe', 'msiexec.exe'
+          ];
+          
+          const lowerName = proc.name.toLowerCase();
+          
+          // Exclude Windows system processes
+          if (windowsSystemProcesses.some(sysProc => lowerName === sysProc.toLowerCase())) {
+            return false;
+          }
+          
+          // Exclude processes that look like Windows services (usually end with .exe and are system-related)
+          if (lowerName.endsWith('.exe')) {
+            // Allow common applications but exclude obvious system processes
+            const allowedApps = [
+              'chrome.exe', 'firefox.exe', 'msedge.exe', 'opera.exe', 'brave.exe',
+              'notepad.exe', 'notepad++.exe', 'code.exe', 'atom.exe', 'sublime_text.exe',
+              'photoshop.exe', 'illustrator.exe', 'premiere.exe', 'aftereffects.exe',
+              'word.exe', 'excel.exe', 'powerpoint.exe', 'outlook.exe', 'teams.exe',
+              'discord.exe', 'slack.exe', 'spotify.exe', 'vlc.exe', 'steam.exe',
+              'game.exe', 'launcher.exe', 'client.exe', 'main.exe', 'app.exe'
+            ];
+            
+            // If it's a known application, allow it
+            if (allowedApps.some(app => lowerName.includes(app.replace('.exe', '')))) {
+              return true;
+            }
+            
+            // Allow applications that are clearly user applications based on their path
+            if (proc.cmd) {
+              const cmdLower = proc.cmd.toLowerCase();
+              // Allow apps from Program Files, user directories, or common app locations
+              if (cmdLower.includes('\\program files\\') || 
+                  cmdLower.includes('\\program files (x86)\\') ||
+                  cmdLower.includes('\\users\\') ||
+                  cmdLower.includes('\\appdata\\local\\') ||
+                  cmdLower.includes('\\steamapps\\') ||
+                  cmdLower.includes('\\games\\')) {
+                return true;
+              }
+            }
+            
+            // Include processes with spaces in name (likely user applications)
+            if (proc.name.includes(' ')) {
+              return true;
+            }
+          }
+          
+          return true;
+        } else if (platform === 'darwin') {
+          // macOS system processes to exclude
+          return !proc.name.startsWith('com.apple.') && 
+                 !proc.name.startsWith('kernel') &&
+                 !proc.name.includes('mdns') &&
+                 !proc.name.includes('coreaudio');
+        } else {
+          // Linux/other platforms - basic filtering
+          return !proc.name.startsWith('kthreadd') &&
+                 !proc.name.startsWith('[') &&
+                 !proc.name.includes('systemd');
+        }
+      })
       .reduce((unique, proc) => {
-        const existing = unique.find(app => app.name === proc.name);
+        // Clean up the name for display (remove .exe on Windows)
+        let displayName = proc.name;
+        if (platform === 'win32' && displayName.toLowerCase().endsWith('.exe')) {
+          displayName = displayName.slice(0, -4);
+        }
+        
+        const existing = unique.find(app => app.name === displayName);
         if (!existing) {
           unique.push({
-            name: proc.name,
+            name: displayName,
+            originalName: proc.name,
             pid: proc.pid,
             cmd: proc.cmd || ''
           });
@@ -470,6 +569,11 @@ async function getRunningApps() {
       }, [])
       .sort((a, b) => a.name.localeCompare(b.name));
 
+    console.log(`🔍 Found ${apps.length} applications on ${platform}`);
+    if (platform === 'win32' && apps.length < 5) {
+      console.log('⚠️ Very few apps found on Windows. This might indicate filtering is too aggressive.');
+      console.log('Sample processes found:', processes.slice(0, 10).map(p => ({ name: p.name, cmd: p.cmd })));
+    }
     return apps;
   } catch (error) {
     console.error('Error getting running apps:', error);
