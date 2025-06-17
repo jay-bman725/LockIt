@@ -47,8 +47,51 @@ let isMonitoring = false;
 let monitoringInterval;
 let cleanupInterval;
 let refocusInterval;
+let securityLockdownRefocusInterval;
+let lockOverlayRefocusInterval;
 let temporaryUnlocks = new Map(); // Track temporary unlocks by process info
 let currentLockedApp = null; // Track currently locked app details
+
+// Failsafe function to ensure security lockdown is properly handled
+function ensureSecurityLockdownState() {
+  if (isInSecurityLockdown()) {
+    console.log('🚨 Failsafe: Ensuring security lockdown state is properly displayed');
+    
+    // Close main window if it exists and we're in lockdown
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      console.log('🚨 Closing main window - system is in security lockdown');
+      mainWindow.close();
+      mainWindow = null;
+    }
+    
+    // Ensure lockdown screen is shown and focused
+    if (!global.securityLockdownOverlay || global.securityLockdownOverlay.isDestroyed()) {
+      console.log('🚨 Security lockdown overlay missing - creating it');
+      showSecurityLockdownScreen();
+    } else {
+      // Verify focus and visibility
+      if (!global.securityLockdownOverlay.isFocused()) {
+        console.log('🚨 Security lockdown overlay not focused - refocusing');
+        global.securityLockdownOverlay.focus();
+        global.securityLockdownOverlay.moveTop();
+      }
+      
+      if (!global.securityLockdownOverlay.isVisible()) {
+        console.log('🚨 Security lockdown overlay not visible - showing');
+        global.securityLockdownOverlay.show();
+        global.securityLockdownOverlay.focus();
+      }
+      
+      if (!global.securityLockdownOverlay.isFullScreen()) {
+        console.log('🚨 Security lockdown overlay not fullscreen - forcing fullscreen');
+        global.securityLockdownOverlay.setFullScreen(true);
+      }
+    }
+    
+    return true;
+  }
+  return false;
+}
 
 // Create the main application window
 function createMainWindow() {
@@ -131,19 +174,24 @@ function createLockOverlay(appInfo) {
     lockOverlay.focus();
   });
 
-  // Refocus when losing focus
+  // Refocus when losing focus - enhanced detection
   lockOverlay.on('blur', () => {
-    console.log('🔒 Lock overlay lost focus - refocusing');
+    console.log('🔒 Lock overlay lost focus - implementing enhanced refocus');
     setTimeout(() => {
-      if (lockOverlay && !lockOverlay.isDestroyed()) {
-        lockOverlay.focus();
-      }
+      enforceWindowFocus(lockOverlay, 'lock-overlay');
     }, 100);
   });
+
+  // Enhanced focus detection with aggressive monitoring
+  lockOverlayRefocusInterval = createAggressiveFocusMonitoring(lockOverlay, 'lock-overlay', 1000);
 
   // Handle overlay destroyed (should only happen when properly unlocked)
   lockOverlay.on('closed', () => {
     console.log('🔒 Lock overlay closed');
+    if (lockOverlayRefocusInterval) {
+      clearInterval(lockOverlayRefocusInterval);
+      lockOverlayRefocusInterval = null;
+    }
     lockOverlay = null;
     currentLockedApp = null;
   });
@@ -159,6 +207,9 @@ function createLockOverlay(appInfo) {
     console.log('🔒 Prevented new window from lock screen');
     return { action: 'deny' };
   });
+
+  // Add security event listeners
+  addSecurityEventListeners(lockOverlay, 'lock-overlay');
 
   lockOverlay.focus();
 }
@@ -192,6 +243,29 @@ function deactivateSecurityLockdown() {
   store.set('isInSecurityLockdown', false);
   store.set('pinAttempts', 0); // Reset PIN attempts
   console.log('✅ Security lockdown deactivated');
+  
+  // Close the security lockdown overlay if it exists
+  if (global.securityLockdownOverlay && !global.securityLockdownOverlay.isDestroyed()) {
+    console.log('🔒 Closing security lockdown overlay');
+    
+    // Clear the refocus interval
+    if (global.securityLockdownOverlay.refocusInterval) {
+      clearInterval(global.securityLockdownOverlay.refocusInterval);
+    }
+    
+    global.securityLockdownOverlay.removeAllListeners();
+    global.securityLockdownOverlay.destroy();
+    global.securityLockdownOverlay = null;
+  }
+  
+  // Create main window if it doesn't exist
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    console.log('🪟 Creating main window after security lockdown');
+    createMainWindow();
+  } else {
+    // Focus existing main window
+    mainWindow.focus();
+  }
 }
 
 function incrementPinAttempts() {
@@ -244,12 +318,17 @@ function createSecurityLockdownOverlay() {
   });
 
   lockdownOverlay.on('blur', () => {
+    console.log('🚨 Security lockdown overlay lost focus - implementing enhanced refocus');
     setTimeout(() => {
-      if (lockdownOverlay && !lockdownOverlay.isDestroyed()) {
-        lockdownOverlay.focus();
-      }
-    }, 100);
+      enforceWindowFocus(lockdownOverlay, 'security-lockdown');
+    }, 50); // Faster response for security lockdown
   });
+
+  // Enhanced focus detection with aggressive monitoring for security lockdown
+  const lockdownRefocusInterval = createAggressiveFocusMonitoring(lockdownOverlay, 'security-lockdown', 500);
+
+  // Store interval reference for cleanup
+  lockdownOverlay.refocusInterval = lockdownRefocusInterval;
 
   lockdownOverlay.webContents.on('will-navigate', (event) => {
     event.preventDefault();
@@ -258,6 +337,9 @@ function createSecurityLockdownOverlay() {
   lockdownOverlay.webContents.setWindowOpenHandler(() => {
     return { action: 'deny' };
   });
+
+  // Add security event listeners
+  addSecurityEventListeners(lockdownOverlay, 'security-lockdown');
 
   lockdownOverlay.focus();
   return lockdownOverlay;
@@ -431,9 +513,160 @@ function stopMonitoring() {
     clearInterval(refocusInterval);
     refocusInterval = null;
   }
+  if (lockOverlayRefocusInterval) {
+    clearInterval(lockOverlayRefocusInterval);
+    lockOverlayRefocusInterval = null;
+  }
+  if (securityLockdownRefocusInterval) {
+    clearInterval(securityLockdownRefocusInterval);
+    securityLockdownRefocusInterval = null;
+  }
+  
+  // Clean up lock overlay refocus interval if it exists
+  if (lockOverlay && !lockOverlay.isDestroyed() && lockOverlay.refocusInterval) {
+    clearInterval(lockOverlay.refocusInterval);
+  }
+  
+  // Clean up security lockdown refocus interval if it exists
+  if (global.securityLockdownOverlay && !global.securityLockdownOverlay.isDestroyed() && global.securityLockdownOverlay.refocusInterval) {
+    clearInterval(global.securityLockdownOverlay.refocusInterval);
+  }
+  
   isMonitoring = false;
   currentLockedApp = null;
-  console.log('⏹️ Stopped app monitoring');
+  console.log('⏹️ Stopped app monitoring and cleaned up all focus intervals');
+}
+
+// Enhanced security event listeners for both lock types
+function addSecurityEventListeners(window, windowType) {
+  if (!window || window.isDestroyed()) return;
+  
+  // Prevent all forms of navigation and escape
+  window.webContents.on('before-input-event', (event, input) => {
+    // Block system shortcuts that could escape the lock
+    const blockedKeys = [
+      'F3', 'F4', 'F9', 'F10', 'F11', // Mission Control, Exposé, etc.
+      'Tab', // When combined with Cmd/Alt
+    ];
+    
+    const blockedCombinations = [
+      { key: 'Tab', meta: true }, // Cmd+Tab (macOS)
+      { key: 'Tab', alt: true }, // Alt+Tab (Windows/Linux)
+      { key: 'F4', alt: true }, // Alt+F4
+      { key: 'w', meta: true }, // Cmd+W
+      { key: 'q', meta: true }, // Cmd+Q
+      { key: 'h', meta: true }, // Cmd+H (hide)
+      { key: 'm', meta: true }, // Cmd+M (minimize)
+      { key: '`', meta: true }, // Cmd+` (cycle windows)
+      { key: 'Space', control: true }, // Ctrl+Space (Spotlight)
+    ];
+    
+    // Check if key should be blocked
+    if (blockedKeys.includes(input.key)) {
+      console.log(`🚨 Blocked ${windowType} escape attempt: ${input.key}`);
+      event.preventDefault();
+      return;
+    }
+    
+    // Check for blocked combinations
+    for (const combo of blockedCombinations) {
+      if (input.key === combo.key && 
+          ((combo.meta && input.meta) || 
+           (combo.alt && input.alt) || 
+           (combo.control && input.control) || 
+           (combo.shift && input.shift))) {
+        console.log(`🚨 Blocked ${windowType} escape combination: ${JSON.stringify(combo)}`);
+        event.preventDefault();
+        
+        // Force refocus after escape attempt
+        setTimeout(() => {
+          enforceWindowFocus(window, windowType);
+        }, 100);
+        return;
+      }
+    }
+  });
+  
+  // Monitor for window state changes
+  window.on('enter-full-screen', () => {
+    console.log(`✅ ${windowType} entered fullscreen`);
+  });
+  
+  window.on('leave-full-screen', () => {
+    console.log(`🚨 ${windowType} left fullscreen - forcing back to fullscreen`);
+    if (windowType === 'security-lockdown') {
+      window.setFullScreen(true);
+    }
+  });
+  
+  // Monitor for show/hide events
+  window.on('show', () => {
+    console.log(`✅ ${windowType} shown`);
+  });
+  
+  window.on('hide', () => {
+    console.log(`🚨 ${windowType} hidden - forcing show`);
+    window.show();
+    enforceWindowFocus(window, windowType);
+  });
+}
+
+// Enhanced focus enforcement functions
+function enforceWindowFocus(window, windowType) {
+  if (!window || window.isDestroyed()) return;
+  
+  console.log(`🔒 Enforcing focus for ${windowType} window`);
+  
+  // Multiple focus enforcement methods
+  window.focus();
+  window.moveTop();
+  window.setAlwaysOnTop(true, 'screen-saver');
+  window.show();
+  
+  // For security lockdown, ensure fullscreen
+  if (windowType === 'security-lockdown' && !window.isFullScreen()) {
+    window.setFullScreen(true);
+  }
+  
+  // Send focus command to the window's web contents
+  if (window.webContents && !window.webContents.isDestroyed()) {
+    window.webContents.executeJavaScript('window.focus();').catch(() => {});
+  }
+}
+
+function createAggressiveFocusMonitoring(window, windowType, interval = 500) {
+  const focusInterval = setInterval(() => {
+    if (!window || window.isDestroyed()) {
+      clearInterval(focusInterval);
+      return;
+    }
+    
+    let needsRefocus = false;
+    
+    // Check focus status
+    if (!window.isFocused()) {
+      console.log(`🚨 ${windowType} window lost focus - refocusing`);
+      needsRefocus = true;
+    }
+    
+    // Check visibility
+    if (!window.isVisible()) {
+      console.log(`🚨 ${windowType} window not visible - showing`);
+      needsRefocus = true;
+    }
+    
+    // For security lockdown, check fullscreen
+    if (windowType === 'security-lockdown' && !window.isFullScreen()) {
+      console.log(`🚨 ${windowType} window not fullscreen - enforcing fullscreen`);
+      needsRefocus = true;
+    }
+    
+    if (needsRefocus) {
+      enforceWindowFocus(window, windowType);
+    }
+  }, interval);
+  
+  return focusInterval;
 }
 
 // Debug helper to show current unlock status
@@ -497,7 +730,7 @@ async function getWindowsProcessesFallback() {
       }
     }
     
-    console.log(`✅ Windows fallback found ${processes.length} processes`);
+    console.log(`✅ Windows fallback found ${processs.length} processes`);
     return processes;
     
   } catch (error) {
@@ -1089,6 +1322,12 @@ ipcMain.handle('recover-from-lockdown', async (event, newPin) => {
     // Close lockdown overlay immediately - no delays
     if (global.securityLockdownOverlay && !global.securityLockdownOverlay.isDestroyed()) {
       console.log('🔓 Forcefully closing lockdown overlay...');
+      
+      // Clear the refocus interval
+      if (global.securityLockdownOverlay.refocusInterval) {
+        clearInterval(global.securityLockdownOverlay.refocusInterval);
+      }
+      
       global.securityLockdownOverlay.removeAllListeners();
       global.securityLockdownOverlay.destroy();
       global.securityLockdownOverlay = null;
@@ -1158,8 +1397,20 @@ ipcMain.handle('open-download-url', (event, url) => {
 
 // App Event Handlers
 app.whenReady().then(() => {
-  createMainWindow();
-  createMenu();
+  // Check if system is in security lockdown on startup
+  if (isInSecurityLockdown()) {
+    console.log('🚨 System is in security lockdown - showing lockdown screen instead of main window');
+    showSecurityLockdownScreen();
+    createMenu(); // Still create menu for context menu access
+  } else {
+    createMainWindow();
+    createMenu();
+  }
+
+  // Set up periodic security lockdown state check (every 30 seconds)
+  setInterval(() => {
+    ensureSecurityLockdownState();
+  }, 30000);
 
   // Check for updates after app is ready (delayed to avoid blocking startup)
   setTimeout(() => {
@@ -1175,7 +1426,13 @@ app.whenReady().then(() => {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
+      // Check security lockdown state when activating
+      if (isInSecurityLockdown()) {
+        console.log('🚨 App activated while in security lockdown - showing lockdown screen');
+        showSecurityLockdownScreen();
+      } else {
+        createMainWindow();
+      }
     }
   });
 });
@@ -1199,5 +1456,8 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
+// Ensure security lockdown state on startup
+ensureSecurityLockdownState();
 
 console.log('🔐 LockIt started successfully!');

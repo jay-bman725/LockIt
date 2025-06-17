@@ -5,7 +5,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/🔐-LockIt-blue?style=for-the-badge" alt="LockIt Logo">
-    <img src="https://img.shields.io/badge/version-1.0.3-green?style=for-the-badge" alt="Version">
+    <img src="https://img.shields.io/badge/version-1.0.5-green?style=for-the-badge" alt="Version">
     <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge" alt="Platform">
   </p>
 

@@ -36,17 +36,18 @@ async function loadSecurityStatus() {
 }
 
 function formatLockdownTime(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
+    // Always display the actual date and time instead of relative time
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    };
     
-    if (diffMins < 1) {
-        return 'Just now';
-    } else if (diffMins < 60) {
-        return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-    } else {
-        return date.toLocaleString();
-    }
+    return date.toLocaleString('en-US', options);
 }
 
 async function verifyMasterPassword() {

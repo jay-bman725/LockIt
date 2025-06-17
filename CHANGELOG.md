@@ -1,6 +1,61 @@
 # Changelog
 **All dates are in YYYY/MM/DD (Year-Month-Day)**
 
+## [1.0.5] - 2025-06-17
+
+### Enhanced Security & Focus Management 🔒
+
+#### Security Lockdown Startup Fix
+- **Fixed security lockdown persistence**: Application now properly detects and maintains security lockdown state across restarts
+- **Enhanced startup checks**: Added comprehensive security state validation during application initialization
+- **Automatic lockdown screen display**: System correctly shows security lockdown interface when restarted while in lockdown mode
+- **Improved state recovery**: Enhanced failsafe mechanisms to ensure lockdown state is preserved and displayed
+
+#### Advanced Focus Detection & Prevention
+- **Aggressive focus monitoring**: Implemented multi-layered focus detection system for both PIN and security lockdown windows
+  - PIN window: Monitored every 1 second
+  - Security lockdown: Monitored every 500ms (enhanced security)
+- **Enhanced focus enforcement**: Added robust window focus management with multiple enforcement methods
+  - `focus()`, `moveTop()`, `setAlwaysOnTop()`, `show()` combination
+  - JavaScript-level focus commands in web contents
+  - Comprehensive visibility and state validation
+- **System shortcut blocking**: Comprehensive prevention of escape attempts
+  - **macOS**: Cmd+Tab, Cmd+W, Cmd+Q, Cmd+H, Cmd+M, Cmd+`
+  - **Cross-platform**: Alt+Tab, Alt+F4, Ctrl+Space (Spotlight)
+  - **Mission Control**: F3, F4, F9, F10, F11 prevention
+  - **Custom combinations**: Advanced escape attempt detection and blocking
+
+#### Advanced Security Event Monitoring
+- **Window state change detection**: Real-time monitoring of fullscreen, visibility, and focus states
+- **Automatic state recovery**: Self-healing system for any bypass attempts or state corruption
+- **Input event filtering**: Comprehensive blocking of system shortcuts and escape key combinations
+- **Enhanced refocus mechanisms**: Immediate window refocusing after any escape attempts
+
+#### Improved Time Display
+- **Precise lockdown timestamps**: Security lockdown screen now displays exact date and time instead of relative time
+  - **Before**: "2 minutes ago" or "Just now"
+  - **After**: "Jun 17, 2025, 2:45:30 PM"
+- **Better incident tracking**: Enhanced security audit trail with precise timestamp information
+- **Professional formatting**: Standardized date/time format with seconds precision
+
+#### Resource Management & Performance
+- **Enhanced cleanup systems**: Proper cleanup of all monitoring intervals and event listeners
+- **Memory leak prevention**: Comprehensive resource management during window lifecycle
+- **Performance optimization**: Balanced monitoring intervals for security without performance impact
+- **Cross-platform stability**: Improved compatibility across Windows, macOS, and Linux
+
+#### Failsafe & Recovery Systems
+- **Periodic system validation**: Global failsafe checks every 30 seconds
+- **Multi-layer protection**: Primary, secondary, and tertiary detection systems
+- **Emergency state recovery**: Automatic correction of any security state deviations
+- **Comprehensive logging**: Enhanced security event tracking and performance monitoring
+
+### Technical Improvements
+- **Enhanced error handling**: Improved error detection and recovery mechanisms
+- **Code organization**: Better separation of security functions and focus management
+- **Documentation**: Comprehensive inline documentation for security systems
+- **Testing resilience**: More robust handling of edge cases and system interactions
+
 ## [1.0.4] - 2025-06-17
 
 ### Fixed Update System
