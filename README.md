@@ -5,7 +5,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/🔐-LockIt-blue?style=for-the-badge" alt="LockIt Logo">
-    <img src="https://img.shields.io/badge/version-1.0.0-green?style=for-the-badge" alt="Version">
+    <img src="https://img.shields.io/badge/version-1.0.3-green?style=for-the-badge" alt="Version">
     <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge" alt="Platform">
   </p>
 
@@ -64,11 +64,16 @@ npm start
 
 ## 💻 System Requirements
 
-| Platform | Minimum Requirements |
-|----------|---------------------|
-| **Windows** | Windows 10 (64-bit), 4GB RAM, 100MB disk space |
-| **macOS** | macOS 10.15 Catalina, 4GB RAM, 100MB disk space |
-| **Linux** | Ubuntu 18.04+ / CentOS 8+, 4GB RAM, 100MB disk space |
+| Platform | Minimum Requirements | Status |
+|----------|---------------------|---------|
+| **Windows** | Windows 10 (64-bit), 4GB RAM, 100MB disk space | ❌ **NOT WORKING** |
+| **macOS** | macOS 10.15 Catalina, 4GB RAM, 100MB disk space | ✅ **WORKING** |
+| **Linux** | Ubuntu 18.04+ / CentOS 8+, 4GB RAM, 100MB disk space | ❓ **UNKNOWN** |
+
+> ⚠️ **Important Platform Notes**: 
+> - **Windows**: Functionality is currently **NOT WORKING** 
+> - **Linux**: Functionality status is **UNKNOWN** and untested
+> - **macOS**: Fully functional and tested
 
 **Note**: LockIt requires administrative privileges for optimal functionality.
 

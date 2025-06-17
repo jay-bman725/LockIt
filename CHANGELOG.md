@@ -3,18 +3,7 @@
 
 ## [1.0.3] - 2025-06-16
 
-### Fixed
-- **Windows Application Detection**: Enhanced Windows process detection with multiple fallback methods
-  - Added extensive debugging output to identify Windows-specific issues
-  - Implemented Windows `wmic` command fallback when `ps-list` fails
-  - Added ultimate fallback with common Windows applications for testing
-  - Improved error handling for both module import and execution failures
-  - Enhanced Windows 64-bit compatibility
-
-### Technical
-- **Robust Process Detection**: Added multiple layers of fallback for Windows systems
-- **Enhanced Debugging**: Comprehensive logging to help diagnose Windows issues
-- **Error Handling**: Improved error catching and recovery for process enumeration
+## Attempted to fix an error while getting applications on Windows, didnt work
 
 ## [1.0.2] - 2025-06-16
 
