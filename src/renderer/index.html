@@ -20,6 +20,27 @@
                 </button>
             </div>
         </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Status Panel -->
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">Monitoring Status:</span>
+                    <span id="monitoringStatus" class="status-value status-inactive">Inactive</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Locked Apps:</span>
+                    <span id="lockedAppsCount" class="status-value">0</span>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="apps">🔒 Locked Apps</button>
+                <button class="tab-btn" data-tab="available">📱 Available Apps</button>
+                <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+
             </div>
 
             <!-- Tab Content -->

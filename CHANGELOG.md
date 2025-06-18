@@ -1,6 +1,16 @@
 # Changelog
 **All dates are in YYYY/MM/DD (Year-Month-Day)**
 
+## [1.1.1] - 2025-06-18
+
+### Bug Fixes
+
+- **HTML Rendering Fix**: Corrected HTML structure to resolve rendering issues in the application interface.
+  - Fixed unclosed tags and invalid markup in main UI components.
+  - Ensured consistent layout and styling across all supported platforms.
+  - Improved compatibility with embedded web views and extension popup.
+  - Re-introduced accedentally deleted parts of an HTML file
+
 ## [1.1.0] - 2025-06-17
 
 ### Chrome Extension Integration & Website Blocking 🌐
