@@ -1,6 +1,6 @@
 {
   "name": "lockit",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "🔐 LockIt - Application Lock Utility for Desktop",
   "main": "src/main/main.js",
   "scripts": {
@@ -10,13 +10,18 @@
     "lint": "echo 'Linting placeholder - add ESLint here'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+"build": {
+  "extraResources": ["extension/**/*"]
+},
   "keywords": ["electron", "desktop", "app-lock", "security"],
   "author": "LockIt Team",
   "license": "MIT",
   "dependencies": {
     "active-win": "^8.2.1",
     "electron-store": "^8.2.0",
-    "ps-list": "^8.1.1"
+    "ps-list": "^8.1.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "electron": "^36.4.0"

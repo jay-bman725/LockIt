@@ -465,6 +465,146 @@ body::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
 }
 
+/* Chrome Extension Step */
+.extension-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.option-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.option-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.option-card.selected {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #4CAF50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.option-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.option-icon {
+    font-size: 1.5em;
+    min-width: 30px;
+}
+
+.option-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.option-description p {
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+.option-description ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.option-description li {
+    padding: 5px 0;
+    position: relative;
+    opacity: 0.8;
+}
+
+.extension-instructions {
+    margin-top: 25px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 300px;
+    }
+}
+
+.instruction-box {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: left;
+}
+
+.instruction-box h4 {
+    margin-bottom: 15px;
+    color: #FFD700;
+}
+
+.instruction-box ol {
+    margin: 15px 0;
+    padding-left: 20px;
+}
+
+.instruction-box li {
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+.instruction-box code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.9em;
+}
+
+.extension-download {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.extension-download a {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 16px;
+    background: #007acc;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.extension-download a:hover {
+    background: #005a9e;
+    text-decoration: none;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.8em;
+    margin: 5px 5px 0 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .onboarding-container {

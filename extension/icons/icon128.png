@@ -1,0 +1,6 @@
+<!-- This is a placeholder for the 128x128 icon -->
+<!-- You should replace this with an actual PNG icon file -->
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" fill="#667eea"/>
+  <text x="64" y="80" text-anchor="middle" fill="white" font-size="64">🔐</text>
+</svg>

@@ -20,26 +20,6 @@
                 </button>
             </div>
         </header>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Status Panel -->
-            <div class="status-panel">
-                <div class="status-item">
-                    <span class="status-label">Monitoring Status:</span>
-                    <span id="monitoringStatus" class="status-value status-inactive">Inactive</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Locked Apps:</span>
-                    <span id="lockedAppsCount" class="status-value">0</span>
-                </div>
-            </div>
-
-            <!-- Tabs -->
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="apps">🔒 Locked Apps</button>
-                <button class="tab-btn" data-tab="available">📱 Available Apps</button>
-                <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
             </div>
 
             <!-- Tab Content -->
@@ -76,6 +56,85 @@
                         <div class="loading">
                             <span class="loading-spinner">⏳</span>
                             <p>Loading applications...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blocked Websites Tab -->
+                <div id="websites-tab" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Blocked Websites</h2>
+                        <div class="header-info">
+                            <span class="info-icon">🌐</span>
+                            <small>Websites blocked via Chrome Extension</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Website Form -->
+                    <div class="add-website-form">
+                        <div class="form-group">
+                            <label for="websiteInput">Add Website to Block:</label>
+                            <div class="input-group">
+                                <input type="text" id="websiteInput" placeholder="e.g., facebook.com, youtube.com">
+                                <button id="addWebsiteBtn" class="btn btn-primary">
+                                    ➕ Add
+                                </button>
+                            </div>
+                            <small>Enter domain name only (without http:// or www.)</small>
+                        </div>
+                    </div>
+
+                    <!-- Blocked Websites List -->
+                    <div class="websites-container">
+                        <div class="section-subheader">
+                            <h3>Currently Blocked Websites</h3>
+                            <button id="clearAllWebsitesBtn" class="btn btn-danger btn-small">
+                                🗑️ Clear All
+                            </button>
+                        </div>
+                        
+                        <div id="blockedWebsitesList" class="websites-list">
+                            <div class="empty-state">
+                                <span class="empty-icon">🌐</span>
+                                <p>No websites are currently blocked.</p>
+                                <p>Add websites above to block them in Chrome.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chrome Extension Info -->
+                    <div class="extension-info">
+                        <h3>🧩 Chrome Extension Integration</h3>
+                        <div class="integration-status">
+                            <div class="status-item">
+                                <span class="status-label">Server Status:</span>
+                                <span id="serverStatus" class="status-value">Checking...</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Extension Connected:</span>
+                                <span id="extensionStatus" class="status-value">Unknown</span>
+                            </div>
+                        </div>
+                        
+                        <div class="installation-help">
+                            <h4>📋 Extension Installation:</h4>
+                            <ol>
+                                <li>Download the extension ZIP file from our GitHub releases page</li>
+                                <li>Extract the ZIP file to a folder on your computer</li>
+                                <li>Open Chrome and go to <code>chrome://extensions/</code></li>
+                                <li>Enable "Developer mode"</li>
+                                <li>Click "Load unpacked" and select the extracted extension folder</li>
+                                <li>The LockIt extension will appear in your Chrome toolbar</li>
+                            </ol>
+                            
+                            <div class="help-actions">
+                                <button id="downloadExtensionBtn" class="btn btn-outline">
+                                    � Download Extension
+                                </button>
+                                <button id="testConnectionBtn" class="btn btn-outline">
+                                    🔗 Test Connection
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

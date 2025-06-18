@@ -1,7 +1,12 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, globalShortcut } = require('electron');
 const path = require('node:path');
 const Store = require('electron-store');
 const https = require('https');
+const express = require('express');
+const cors = require('cors');
+
+// Development mode detection
+const isDevelopment = process.env.NODE_ENV === 'development' || process.argv.includes('--dev') || !app.isPackaged;
 
 // Import ES modules dynamically
 let activeWin, psList;
@@ -23,6 +28,7 @@ const store = new Store({
     pin: null, // No default PIN - user must set during onboarding
     unlockDuration: null, // No default - user must set during onboarding
     masterPassword: null, // Master password for security lockdown recovery
+    chromeExtensionEnabled: false, // Chrome extension is opt-in during onboarding
     isFirstRun: true,
     isOnboardingComplete: false,
     pinAttempts: 0, // Track failed PIN attempts
@@ -51,6 +57,10 @@ let securityLockdownRefocusInterval;
 let lockOverlayRefocusInterval;
 let temporaryUnlocks = new Map(); // Track temporary unlocks by process info
 let currentLockedApp = null; // Track currently locked app details
+
+// HTTP Server for Chrome Extension Integration
+let httpServer = null;
+const HTTP_SERVER_PORT = 4242;
 
 // Failsafe function to ensure security lockdown is properly handled
 function ensureSecurityLockdownState() {
@@ -351,6 +361,233 @@ function showSecurityLockdownScreen() {
   
   // Store reference globally for cleanup
   global.securityLockdownOverlay = lockdownOverlay;
+}
+
+// HTTP Server for Chrome Extension Integration
+function startHttpServer() {
+  if (httpServer) {
+    console.log('🌐 HTTP server already running');
+    return;
+  }
+
+  const expressApp = express();
+  
+  // Enable CORS for Chrome extension
+  expressApp.use(cors({
+    origin: ['chrome-extension://*', 'moz-extension://*'],
+    credentials: true
+  }));
+  
+  expressApp.use(express.json());
+
+  // Status endpoint - check if LockIt is running
+  expressApp.get('/status', (req, res) => {
+    res.json({ 
+      status: 'running', 
+      app: 'LockIt',
+      version: '1.0.5',
+      monitoring: isMonitoring,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Block endpoint - for websites, just return if should block (extension handles UI)
+  expressApp.post('/block', (req, res) => {
+    const { site, source, tabId } = req.body;
+    
+    console.log(`🌐 Block request received from ${source}: ${site}`);
+    
+    if (!site || !source) {
+      return res.status(400).json({ error: 'Missing required fields: site, source' });
+    }
+
+    // Only block if monitoring is active
+    if (!isMonitoring) {
+      console.log(`🌐 Monitoring is disabled - not blocking ${site}`);
+      return res.json({ 
+        success: false, 
+        message: `Monitoring disabled - ${site} not blocked`,
+        monitoring: false,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if website is temporarily unlocked
+    const websiteKey = `website:${site}`;
+    const tempUnlock = temporaryUnlocks.get(websiteKey);
+    
+    console.log(`🔍 Checking temporary unlock for ${site}:`, {
+      websiteKey,
+      tempUnlock: tempUnlock ? { ...tempUnlock, timeLeft: tempUnlock.expiry - Date.now() } : null,
+      allTempUnlocks: Array.from(temporaryUnlocks.keys())
+    });
+    
+    if (tempUnlock && tempUnlock.expiry > Date.now()) {
+      console.log(`🔓 Website ${site} is temporarily unlocked - not blocking`);
+      return res.json({ 
+        success: false, 
+        message: `${site} is temporarily unlocked`,
+        temporaryUnlock: true,
+        unlockExpiry: tempUnlock.expiry,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // For websites, we don't create desktop overlays anymore - extension handles the block page
+    console.log(`🚫 Website ${site} should be blocked - extension will show block page`);
+
+    res.json({ 
+      success: true, 
+      message: `${site} should be blocked`,
+      monitoring: true,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Blocklist endpoint - return list of blocked websites
+  expressApp.get('/blocklist', (req, res) => {
+    // Get blocked sites from settings 
+    const blockedSites = store.get('blockedWebsites', []);
+
+    res.json({ 
+      sites: blockedSites,
+      count: blockedSites.length,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Update blocklist endpoint
+  expressApp.post('/blocklist', (req, res) => {
+    const { sites } = req.body;
+    
+    if (!Array.isArray(sites)) {
+      return res.status(400).json({ error: 'Sites must be an array' });
+    }
+
+    store.set('blockedWebsites', sites);
+    console.log('🌐 Updated blocked websites list:', sites);
+
+    res.json({ 
+      success: true, 
+      message: 'Blocked sites updated',
+      sites: sites,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // PIN verification endpoint for Chrome extension
+  expressApp.post('/verify-pin', (req, res) => {
+    const { pin, site, source } = req.body;
+    
+    console.log(`🔑 PIN verification request from ${source} for ${site}`);
+    
+    if (!pin) {
+      return res.status(400).json({ success: false, error: 'PIN is required' });
+    }
+
+    // Check if system is in security lockdown
+    if (isInSecurityLockdown()) {
+      return res.status(423).json({ 
+        success: false, 
+        error: 'System is in security lockdown. Use master password to recover.' 
+      });
+    }
+    
+    const correctPin = store.get('pin');
+    if (!correctPin) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'PIN not configured. Please complete onboarding.' 
+      });
+    }
+    
+    if (pin === correctPin) {
+      resetPinAttempts();
+      console.log(`✅ PIN verified for ${site}`);
+      
+      res.json({ 
+        success: true, 
+        message: 'PIN verified successfully',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      const lockdownTriggered = incrementPinAttempts();
+      const remainingAttempts = 10 - store.get('pinAttempts', 0);
+      
+      console.log(`❌ Invalid PIN attempt for ${site}, ${remainingAttempts} attempts remaining`);
+      
+      if (lockdownTriggered) {
+        res.status(423).json({ 
+          success: false, 
+          error: 'Too many failed attempts. System is now in security lockdown.' 
+        });
+      } else {
+        res.status(401).json({ 
+          success: false, 
+          error: `Incorrect PIN. ${remainingAttempts} attempts remaining before security lockdown.` 
+        });
+      }
+    }
+  });
+
+  // Website unlock endpoint for Chrome extension
+  expressApp.post('/unlock-website', (req, res) => {
+    const { site, source } = req.body;
+    
+    console.log(`🔓 Website unlock request from ${source} for ${site}`);
+    
+    if (!site) {
+      return res.status(400).json({ success: false, error: 'Site is required' });
+    }
+
+    const unlockDuration = store.get('unlockDuration', 60000);
+    const websiteKey = `website:${site}`;
+    
+    // Add temporary unlock
+    temporaryUnlocks.set(websiteKey, {
+      expiry: Date.now() + unlockDuration,
+      site: site,
+      source: source
+    });
+    
+    console.log(`🔓 Website ${site} unlocked for ${unlockDuration / 1000} seconds`);
+    
+    res.json({ 
+      success: true, 
+      message: `${site} unlocked temporarily`,
+      unlockDuration: unlockDuration,
+      unlockExpiry: Date.now() + unlockDuration,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Error handling
+  expressApp.use((err, req, res, next) => {
+    console.error('🌐 HTTP Server Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  });
+
+  // Start server
+  httpServer = expressApp.listen(HTTP_SERVER_PORT, 'localhost', () => {
+    console.log(`🌐 LockIt HTTP server started on http://localhost:${HTTP_SERVER_PORT}`);
+  });
+
+  httpServer.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️ Port ${HTTP_SERVER_PORT} already in use. Chrome extension integration may not work.`);
+    } else {
+      console.error('🌐 HTTP Server Error:', err);
+    }
+  });
+}
+
+function stopHttpServer() {
+  if (httpServer) {
+    httpServer.close(() => {
+      console.log('🌐 HTTP server stopped');
+    });
+    httpServer = null;
+  }
 }
 
 // Start monitoring for locked apps
@@ -1143,7 +1380,8 @@ ipcMain.handle('set-locked-apps', (event, apps) => {
 ipcMain.handle('get-settings', () => {
   return {
     pin: store.get('pin'),
-    unlockDuration: store.get('unlockDuration')
+    unlockDuration: store.get('unlockDuration'),
+    chromeExtensionEnabled: store.get('chromeExtensionEnabled', false)
   };
 });
 
@@ -1199,17 +1437,30 @@ ipcMain.handle('verify-pin', (event, enteredPin) => {
 ipcMain.handle('unlock-app', (event, appName) => {
   const unlockDuration = store.get('unlockDuration', 60000);
   
-  // If we have current locked app info, use the specific process key
-  if (currentLockedApp) {
+  console.log('🔓 Unlock request received:', { appName, currentLockedApp });
+  
+  // Check if this is a website unlock
+  if (currentLockedApp && currentLockedApp.site) {
+    // Website unlock
+    const websiteKey = `website:${currentLockedApp.site}`;
+    temporaryUnlocks.set(websiteKey, {
+      expiry: Date.now() + unlockDuration,
+      appName: currentLockedApp.site,
+      processId: null,
+      isWebsite: true
+    });
+    console.log(`🔓 Website ${currentLockedApp.site} unlocked for ${unlockDuration / 1000} seconds`);
+  } else if (currentLockedApp && currentLockedApp.processKey) {
+    // App unlock - use process key
     const processKey = currentLockedApp.processKey;
     temporaryUnlocks.set(processKey, {
       expiry: Date.now() + unlockDuration,
-      appName: appName,
+      appName: appName || currentLockedApp.name || 'Unknown',
       processId: currentLockedApp.processId
     });
-    console.log(`🔓 Process ${processKey} unlocked for ${unlockDuration / 1000} seconds`);
-  } else {
-    // Fallback: unlock by app name only (less precise)
+    console.log(`🔓 App process ${processKey} unlocked for ${unlockDuration / 1000} seconds`);
+  } else if (appName) {
+    // Fallback: unlock by app name only (less precise) - only if appName exists
     const fallbackKey = appName.toLowerCase();
     temporaryUnlocks.set(fallbackKey, {
       expiry: Date.now() + unlockDuration,
@@ -1217,6 +1468,8 @@ ipcMain.handle('unlock-app', (event, appName) => {
       processId: null
     });
     console.log(`🔓 App ${appName} unlocked for ${unlockDuration / 1000} seconds (fallback)`);
+  } else {
+    console.log('🔓 No unlock target identified');
   }
   
   // Close the lock overlay immediately after successful PIN verification
@@ -1232,10 +1485,14 @@ ipcMain.handle('unlock-app', (event, appName) => {
     console.log('✅ Lock overlay destroyed successfully after PIN verification');
   }
   
-  // Clear refocus interval
+  // Clear refocus intervals
   if (refocusInterval) {
     clearInterval(refocusInterval);
     refocusInterval = null;
+  }
+  if (lockOverlayRefocusInterval) {
+    clearInterval(lockOverlayRefocusInterval);
+    lockOverlayRefocusInterval = null;
   }
   
   // Clear current locked app
@@ -1257,10 +1514,14 @@ ipcMain.handle('close-lock-overlay', () => {
     console.log('✅ Lock overlay destroyed successfully');
   }
   
-  // Clear refocus interval
+  // Clear refocus intervals
   if (refocusInterval) {
     clearInterval(refocusInterval);
     refocusInterval = null;
+  }
+  if (lockOverlayRefocusInterval) {
+    clearInterval(lockOverlayRefocusInterval);
+    lockOverlayRefocusInterval = null;
   }
   
   currentLockedApp = null;
@@ -1279,12 +1540,14 @@ ipcMain.handle('complete-onboarding', (event, settings) => {
     store.set('pin', settings.pin);
     store.set('masterPassword', settings.masterPassword);
     store.set('unlockDuration', settings.unlockDuration);
+    store.set('chromeExtensionEnabled', settings.chromeExtension || false);
     store.set('isOnboardingComplete', true);
     store.set('isFirstRun', false);
     store.set('pinAttempts', 0);
     store.set('isInSecurityLockdown', false);
     
     console.log('✅ Onboarding completed successfully');
+    console.log('🌐 Chrome extension enabled:', settings.chromeExtension);
     return { success: true };
   } catch (error) {
     console.error('Error completing onboarding:', error);
@@ -1395,8 +1658,50 @@ ipcMain.handle('open-download-url', (event, url) => {
   }
 });
 
+// Blocked websites IPC handlers
+ipcMain.handle('get-blocked-websites', () => {
+  return store.get('blockedWebsites', []);
+});
+
+ipcMain.handle('save-blocked-websites', (event, websites) => {
+  store.set('blockedWebsites', websites);
+  console.log('🌐 Blocked websites updated:', websites);
+  return { success: true };
+});
+
+ipcMain.handle('test-http-server', () => {
+  // Simple check if HTTP server is running
+  return httpServer !== null;
+});
+
+ipcMain.handle('open-external-url', async (event, url) => {
+  try {
+    const { shell } = require('electron');
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Error opening external URL:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // App Event Handlers
 app.whenReady().then(() => {
+  // Start HTTP server for Chrome extension integration
+  startHttpServer();
+  
+  // Register emergency exit key combo in development mode
+  if (isDevelopment) {
+    const emergencyKey = process.platform === 'darwin' ? 'CommandOrControl+Option+Shift+E' : 'Ctrl+Alt+Shift+E';
+    
+    globalShortcut.register(emergencyKey, () => {
+      console.log('🚨 EMERGENCY EXIT TRIGGERED IN DEVELOPMENT MODE - FORCE CLOSING APP');
+      app.exit(0);
+    });
+    
+    console.log(`🔧 Development mode: Emergency exit registered (${emergencyKey})`);
+  }
+  
   // Check if system is in security lockdown on startup
   if (isInSecurityLockdown()) {
     console.log('🚨 System is in security lockdown - showing lockdown screen instead of main window');
@@ -1440,12 +1745,20 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     stopMonitoring();
+    stopHttpServer();
     app.quit();
   }
 });
 
 app.on('before-quit', () => {
   stopMonitoring();
+  stopHttpServer();
+  
+  // Unregister global shortcuts
+  if (isDevelopment) {
+    globalShortcut.unregisterAll();
+    console.log('🔧 Development mode: Emergency shortcut unregistered');
+  }
 });
 
 // Handle errors

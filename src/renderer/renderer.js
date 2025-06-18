@@ -5,6 +5,7 @@ let state = {
     isMonitoring: false,
     lockedApps: [],
     availableApps: [],
+    blockedWebsites: [],
     settings: {
         pin: null,
         unlockDuration: null
@@ -90,7 +91,17 @@ function cacheElements() {
         declineUpdateBtn: document.getElementById('declineUpdateBtn'),
         dismissUpdateBtn: document.getElementById('dismissUpdateBtn'),
         downloadUpdateBtn: document.getElementById('downloadUpdateBtn'),
-        checkUpdateBtn: document.getElementById('checkUpdateBtn')
+        checkUpdateBtn: document.getElementById('checkUpdateBtn'),
+        
+        // Website management elements
+        websiteInput: document.getElementById('websiteInput'),
+        addWebsiteBtn: document.getElementById('addWebsiteBtn'),
+        blockedWebsitesList: document.getElementById('blockedWebsitesList'),
+        clearAllWebsitesBtn: document.getElementById('clearAllWebsitesBtn'),
+        serverStatus: document.getElementById('serverStatus'),
+        extensionStatus: document.getElementById('extensionStatus'),
+        downloadExtensionBtn: document.getElementById('downloadExtensionBtn'),
+        testConnectionBtn: document.getElementById('testConnectionBtn')
     };
 }
 
@@ -149,6 +160,17 @@ function setupEventListeners() {
         }
     });
     
+    // Website management
+    elements.addWebsiteBtn.addEventListener('click', addWebsite);
+    elements.clearAllWebsitesBtn.addEventListener('click', clearAllWebsites);
+    elements.downloadExtensionBtn.addEventListener('click', downloadExtension);
+    elements.testConnectionBtn.addEventListener('click', testServerConnection);
+    elements.websiteInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            addWebsite();
+        }
+    });
+    
     // IPC listeners
     ipcRenderer.on('show-preferences', () => {
         switchTab('settings');
@@ -168,6 +190,12 @@ async function loadData() {
         
         // Load settings
         state.settings = await ipcRenderer.invoke('get-settings');
+        
+        // Configure UI based on Chrome extension setting
+        configureUIForChromeExtension();
+        
+        // Load blocked websites
+        await loadBlockedWebsites();
         
         // Load app version
         const appVersion = await ipcRenderer.invoke('get-app-version');
@@ -365,7 +393,14 @@ async function resetSettings() {
 function render() {
     renderLockedApps();
     renderAvailableApps();
+    renderBlockedWebsites();
     updateStatus();
+    updateServerStatus('checking');
+    
+    // Test server connection after a short delay
+    setTimeout(() => {
+        testServerConnection();
+    }, 1000);
 }
 
 // Render locked apps list
@@ -654,6 +689,40 @@ async function downloadUpdate() {
     }
 }
 
+// Configure UI based on Chrome extension settings
+function configureUIForChromeExtension() {
+    const chromeExtensionEnabled = state.settings.chromeExtensionEnabled;
+    
+    // Find the websites tab button and panel
+    const websitesTabBtn = document.querySelector('.tab-btn[data-tab="websites"]');
+    const websitesTabPanel = document.getElementById('websites-tab');
+    
+    if (!chromeExtensionEnabled) {
+        // Hide the websites tab and panel
+        if (websitesTabBtn) {
+            websitesTabBtn.style.display = 'none';
+            console.log('🌐 Chrome extension disabled - hiding websites tab');
+        }
+        if (websitesTabPanel) {
+            websitesTabPanel.style.display = 'none';
+        }
+        
+        // If the websites tab was currently active, switch to locked apps tab
+        if (websitesTabBtn && websitesTabBtn.classList.contains('active')) {
+            switchTab('apps');
+        }
+    } else {
+        // Ensure the websites tab is visible
+        if (websitesTabBtn) {
+            websitesTabBtn.style.display = 'block';
+            console.log('🌐 Chrome extension enabled - showing websites tab');
+        }
+        if (websitesTabPanel) {
+            websitesTabPanel.style.display = 'block';
+        }
+    }
+}
+
 // Utility function to escape HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -661,9 +730,205 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Website Management Functions
+async function addWebsite() {
+    const website = elements.websiteInput.value.trim();
+    
+    if (!website) {
+        showToast('Please enter a website URL', 'error');
+        return;
+    }
+    
+    // Clean up the URL
+    let cleanedSite = website.toLowerCase()
+        .replace(/^https?:\/\//, '')  // Remove protocol
+        .replace(/^www\./, '')        // Remove www
+        .replace(/\/.*$/, '');        // Remove path
+    
+    if (!cleanedSite) {
+        showToast('Please enter a valid website URL', 'error');
+        return;
+    }
+    
+    if (state.blockedWebsites.includes(cleanedSite)) {
+        showToast('Website is already blocked', 'warning');
+        return;
+    }
+    
+    // Add to state
+    state.blockedWebsites.push(cleanedSite);
+    
+    // Save to store
+    try {
+        await ipcRenderer.invoke('save-blocked-websites', state.blockedWebsites);
+        elements.websiteInput.value = '';
+        renderBlockedWebsites();
+        showToast(`Added ${cleanedSite} to blocked websites`, 'success');
+    } catch (error) {
+        console.error('Error saving blocked websites:', error);
+        showToast('Failed to save blocked website', 'error');
+        // Remove from state since save failed
+        state.blockedWebsites = state.blockedWebsites.filter(site => site !== cleanedSite);
+    }
+}
+
+async function removeWebsite(website) {
+    if (!confirm(`Remove ${website} from blocked websites?`)) {
+        return;
+    }
+    
+    // Remove from state
+    state.blockedWebsites = state.blockedWebsites.filter(site => site !== website);
+    
+    // Save to store
+    try {
+        await ipcRenderer.invoke('save-blocked-websites', state.blockedWebsites);
+        renderBlockedWebsites();
+        showToast(`Removed ${website} from blocked websites`, 'success');
+    } catch (error) {
+        console.error('Error saving blocked websites:', error);
+        showToast('Failed to remove blocked website', 'error');
+        // Re-add to state since save failed
+        state.blockedWebsites.push(website);
+    }
+}
+
+async function clearAllWebsites() {
+    if (!confirm('Remove all blocked websites? This action cannot be undone.')) {
+        return;
+    }
+    
+    state.blockedWebsites = [];
+    
+    try {
+        await ipcRenderer.invoke('save-blocked-websites', state.blockedWebsites);
+        renderBlockedWebsites();
+        showToast('All blocked websites cleared', 'success');
+    } catch (error) {
+        console.error('Error clearing blocked websites:', error);
+        showToast('Failed to clear blocked websites', 'error');
+    }
+}
+
+function renderBlockedWebsites() {
+    const container = elements.blockedWebsitesList;
+    
+    if (state.blockedWebsites.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">🌐</span>
+                <p>No websites are currently blocked.</p>
+                <p>Add websites above to block them in Chrome.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = state.blockedWebsites.map(website => `
+        <div class="website-item">
+            <div class="website-info">
+                <span class="website-icon">🚫</span>
+                <div class="website-details">
+                    <h4>${escapeHtml(website)}</h4>
+                    <div class="website-url">Blocked in Chrome Extension</div>
+                </div>
+            </div>
+            <div class="website-actions">
+                <button class="btn btn-danger btn-small" onclick="removeWebsite('${escapeHtml(website)}')">
+                    🗑️ Remove
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function downloadExtension() {
+    try {
+        // Get current app version
+        const version = await ipcRenderer.invoke('get-app-version');
+        const githubUrl = `https://github.com/jay-bman725/LockIt/releases/tag/v${version}`;
+        
+        // Open GitHub releases page in default browser
+        await ipcRenderer.invoke('open-external-url', githubUrl);
+        showToast('GitHub releases page opened. Download the extension ZIP file.', 'success');
+    } catch (error) {
+        console.error('Error opening GitHub releases:', error);
+        showToast('Failed to open GitHub releases page', 'error');
+    }
+}
+
+async function testServerConnection() {
+    const oldText = elements.testConnectionBtn.textContent;
+    elements.testConnectionBtn.textContent = '🔄 Testing...';
+    elements.testConnectionBtn.disabled = true;
+    
+    try {
+        const isRunning = await ipcRenderer.invoke('test-http-server');
+        if (isRunning) {
+            showToast('HTTP server is running correctly', 'success');
+            updateServerStatus('connected');
+        } else {
+            showToast('HTTP server is not responding', 'error');
+            updateServerStatus('disconnected');
+        }
+    } catch (error) {
+        console.error('Error testing server connection:', error);
+        showToast('Failed to test server connection', 'error');
+        updateServerStatus('disconnected');
+    } finally {
+        elements.testConnectionBtn.textContent = oldText;
+        elements.testConnectionBtn.disabled = false;
+    }
+}
+
+function updateServerStatus(status) {
+    const statusElement = elements.serverStatus;
+    const extensionElement = elements.extensionStatus;
+    
+    switch(status) {
+        case 'connected':
+            statusElement.textContent = 'Running';
+            statusElement.className = 'status-value status-connected';
+            extensionElement.textContent = 'Ready';
+            extensionElement.className = 'status-value status-connected';
+            break;
+        case 'disconnected':
+            statusElement.textContent = 'Stopped';
+            statusElement.className = 'status-value status-disconnected';
+            extensionElement.textContent = 'Not Available';
+            extensionElement.className = 'status-value status-disconnected';
+            break;
+        default:
+            statusElement.textContent = 'Checking...';
+            statusElement.className = 'status-value status-checking';
+            extensionElement.textContent = 'Unknown';
+            extensionElement.className = 'status-value status-checking';
+    }
+}
+
+async function loadBlockedWebsites() {
+    // Only load blocked websites if Chrome extension is enabled
+    if (!state.settings.chromeExtensionEnabled) {
+        console.log('🌐 Chrome extension disabled - skipping blocked websites load');
+        state.blockedWebsites = [];
+        return;
+    }
+    
+    try {
+        const websites = await ipcRenderer.invoke('get-blocked-websites');
+        state.blockedWebsites = websites || [];
+        renderBlockedWebsites();
+    } catch (error) {
+        console.error('Error loading blocked websites:', error);
+        state.blockedWebsites = [];
+        renderBlockedWebsites();
+    }
+}
+
 // Make functions available globally for onclick handlers
 window.lockApp = lockApp;
 window.unlockApp = unlockApp;
+window.removeWebsite = removeWebsite;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', init);

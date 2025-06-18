@@ -1,6 +1,75 @@
 # Changelog
 **All dates are in YYYY/MM/DD (Year-Month-Day)**
 
+## [1.1.0] - 2025-06-17
+
+### Chrome Extension Integration & Website Blocking 🌐
+
+#### Chrome Extension Development
+- **Created LockIt Chrome Extension**: Full-featured browser extension for website blocking
+  - **Manifest V3 compatibility**: Modern extension architecture with proper permissions
+  - **Background service worker**: Monitors web navigation and enforces blocking rules
+  - **Popup interface**: User-friendly extension popup with status display and quick actions
+  - **Custom blocked page**: Professional blocked site page with LockIt branding
+  - **Icon set**: Complete set of extension icons (16px, 48px, 128px) for all contexts (blank images)
+
+#### Local HTTP Server Integration
+- **Built-in HTTP server**: LockIt now runs a local server on port 4242 for extension communication
+  - **POST /block endpoint**: Triggers lock screen when blocked websites are accessed
+  - **GET /blocklist endpoint**: Returns current list of blocked websites
+  - **POST /blocklist endpoint**: Updates blocked websites list from main app
+  - **GET /status endpoint**: Provides monitoring status for conditional blocking
+  - **Error handling**: Comprehensive error responses and graceful failure handling
+
+#### Website Blocking System
+- **Real-time website monitoring**: Chrome extension monitors all web navigation events
+- **Domain-based blocking**: Flexible domain matching including subdomains and exact matches
+- **Conditional blocking**: Website blocking only occurs when LockIt monitoring is active
+- **Temporary unlock system**: PIN-based website unlocking with configurable duration
+- **Persistent unlock state**: Unlocked websites remain accessible until unlock period expires
+
+#### Enhanced Main Application UI
+  - **Blocked Websites management tab**: New dedicated interface for managing blocked sites
+  - **Add/remove websites**: Easy website management with domain validation
+  - **Real-time updates**: Changes immediately sync with Chrome extension
+  - **Visual feedback**: Clear indication of blocked website status
+  - **Bulk operations**: Efficient management of multiple blocked websites
+
+#### Emergency Controls & Development Features
+  - **Emergency termination hotkey**: Cmd+Opt+Shift+E (macOS) / Ctrl+Alt+Shift+E (Windows/Linux)
+  - **Development mode only**: Safety feature for testing and development
+  - **Immediate app termination**: Bypasses all security measures for emergency exit
+  - **Global hotkey registration**: Works even when lock screens are active
+  - **Cross-platform compatibility**: Consistent behavior across all supported platforms
+
+#### Extension-App Communication Protocol
+- **RESTful API design**: Clean HTTP-based communication between extension and desktop app
+- **JSON message format**: Structured data exchange with proper error handling
+- **Real-time status sync**: Extension stays synchronized with app monitoring state
+- **Connection resilience**: Graceful handling when desktop app is not running
+- **Security considerations**: Localhost-only communication for enhanced security
+
+### Technical Implementation Details
+- **HTTP server framework**: Express.js-based server with middleware support
+- **Chrome Extension API**: Utilizes webNavigation, tabs, and runtime APIs
+- **IPC enhancements**: Extended inter-process communication for website handling
+- **State management**: Robust tracking of temporary unlocks and current locked entities
+- **Cross-platform hotkeys**: GlobalShortcut API for emergency termination
+- **Resource management**: Improved cleanup and memory management
+
+### User Experience Improvements
+- **Seamless browser integration**: Natural website blocking that feels integrated with LockIt
+- **Familiar lock interface**: Same lock screen experience for both apps and websites
+- **Flexible website management**: Easy-to-use interface for managing blocked websites
+- **Visual consistency**: Extension UI matches main application design language
+- **Performance optimization**: Minimal impact on browsing performance
+
+### Extension Usage is Optional
+
+- **Optional Chrome Extension**: The LockIt Chrome Extension is fully optional. All core LockIt features continue to work without installing the browser extension.
+- **No forced installation**: Users can choose whether or not to use the extension for website blocking during onboarding
+- **Seamless experience**: The main LockIt application functions independently, and website blocking is only enabled if the extension is installed, connected, and enabled via onboarding
+
 ## [1.0.5] - 2025-06-17
 
 ### Enhanced Security & Focus Management 🔒

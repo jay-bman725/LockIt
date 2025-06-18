@@ -60,6 +60,12 @@ function setupEventListeners() {
         updateAppMessage();
     });
     
+    // Website locked listener
+    ipcRenderer.on('website-locked', (event, websiteInfo) => {
+        lockedAppInfo = websiteInfo;
+        updateWebsiteMessage();
+    });
+    
     // Focus PIN input
     elements.pinInput.focus();
 }
@@ -84,6 +90,14 @@ async function loadSettings() {
 function updateAppMessage() {
     if (lockedAppInfo) {
         elements.appMessage.textContent = `${lockedAppInfo.name} is protected by LockIt`;
+    }
+}
+
+// Update website message
+function updateWebsiteMessage() {
+    if (lockedAppInfo && lockedAppInfo.site) {
+        const source = lockedAppInfo.source === 'chrome' ? 'Chrome' : 'Browser';
+        elements.appMessage.textContent = `Access to ${lockedAppInfo.site} via ${source} is blocked using LockIt`;
     }
 }
 
@@ -151,7 +165,9 @@ async function attemptUnlock() {
             
             // Only call unlock-app, which will handle closing the overlay
             if (lockedAppInfo) {
-                await ipcRenderer.invoke('unlock-app', lockedAppInfo.name);
+                // For apps, use name; for websites, use site
+                const identifier = lockedAppInfo.name || lockedAppInfo.site || 'Unknown';
+                await ipcRenderer.invoke('unlock-app', identifier);
             } else {
                 // If no locked app info, just close the overlay
                 await ipcRenderer.invoke('close-lock-overlay');

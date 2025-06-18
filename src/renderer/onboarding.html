@@ -17,6 +17,8 @@
             <div class="progress-step" data-step="3">3</div>
             <div class="progress-line"></div>
             <div class="progress-step" data-step="4">4</div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="5">5</div>
         </div>
 
         <!-- Step 1: Welcome -->
@@ -132,8 +134,76 @@
             </div>
         </div>
 
-        <!-- Step 4: Unlock Duration & Final Setup -->
+        <!-- Step 4: Chrome Extension Setup -->
         <div class="step-content" data-step="4" style="display: none;">
+            <div class="step-header">
+                <h2>🌐 Chrome Extension (Optional)</h2>
+                <p>Would you like to install the LockIt Chrome extension to block websites?</p>
+            </div>
+
+            <div class="form-section">
+                <div class="extension-options">
+                    <div class="option-card" data-option="enable">
+                        <div class="option-header">
+                            <span class="option-icon">✅</span>
+                            <h3>Yes, install Chrome extension</h3>
+                        </div>
+                        <div class="option-description">
+                            <p>The Chrome extension will:</p>
+                            <ul>
+                                <li>🚫 Block websites you add to your blocked list</li>
+                                <li>🔗 Sync with your LockIt desktop app settings</li>
+                                <li>🔒 Show the LockIt unlock screen when visiting blocked sites</li>
+                                <li>📱 Provide easy management through a browser popup</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="option-card" data-option="disable">
+                        <div class="option-header">
+                            <span class="option-icon">⏭️</span>
+                            <h3>Skip Chrome extension</h3>
+                        </div>
+                        <div class="option-description">
+                            <p>Continue with desktop-only protection:</p>
+                            <ul>
+                                <li>🖥️ Lock desktop applications only</li>
+                                <li>🌐 Browsers will remain unrestricted</li>
+                                <li>⚙️ You can install the extension later if needed</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="extension-instructions" id="extensionInstructions" style="display: none;">
+                    <div class="instruction-box">
+                        <h4>📋 Installation Instructions</h4>
+                        <ol>
+                            <li>Download the extension ZIP file from our GitHub releases page</li>
+                            <li>Extract the ZIP file to a folder on your computer</li>
+                            <li>Open Chrome and navigate to <code>chrome://extensions/</code></li>
+                            <li>Enable "Developer mode" in the top right corner</li>
+                            <li>Click "Load unpacked" and select the extracted extension folder</li>
+                            <li>The LockIt extension icon will appear in your Chrome toolbar</li>
+                        </ol>
+                        <div class="extension-download">
+                            <strong>Download Extension:</strong> 
+                            <a href="#" id="extensionDownloadLink" onclick="openGitHubReleases(); return false;">
+                                📦 Download from GitHub Releases
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-actions">
+                <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                <button class="btn btn-primary" id="chromeExtensionNext" onclick="validateChromeExtensionAndNext()" disabled>Continue</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Unlock Duration & Final Setup -->
+        <div class="step-content" data-step="5" style="display: none;">
             <div class="step-header">
                 <h2>⏰ Choose Unlock Duration</h2>
                 <p>How long should applications stay unlocked after entering your PIN?</p>
@@ -162,6 +232,10 @@
                     <div class="summary-item">
                         <span class="summary-label">Master Password:</span>
                         <span class="summary-value">••••••••••••</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Chrome Extension:</span>
+                        <span class="summary-value" id="extensionSummary">Not selected</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Unlock Duration:</span>

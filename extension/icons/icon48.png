@@ -1,0 +1,6 @@
+<!-- This is a placeholder for the 48x48 icon -->
+<!-- You should replace this with an actual PNG icon file -->
+<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="48" fill="#667eea"/>
+  <text x="24" y="32" text-anchor="middle" fill="white" font-size="24">🔐</text>
+</svg>

@@ -1,0 +1,7 @@
+<!-- This is a placeholder for the 16x16 icon -->
+<!-- You should replace this with an actual PNG icon file -->
+<!-- For now, this serves as a placeholder that won't break the extension -->
+<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+  <rect width="16" height="16" fill="#667eea"/>
+  <text x="8" y="12" text-anchor="middle" fill="white" font-size="10">🔐</text>
+</svg>

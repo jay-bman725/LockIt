@@ -18,6 +18,25 @@ jobs:
         id: get-version
         run: echo "VERSION=$(cat version)" >> $GITHUB_OUTPUT
 
+  build-extension:
+    needs: read-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Zip extension folder
+        run: |
+          cd extension
+          zip -r ../chrome-extension-v${{ needs.read-version.outputs.version }}.zip .
+          cd ..
+
+      - name: Upload extension zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-build
+          path: chrome-extension-v${{ needs.read-version.outputs.version }}.zip
+
   build-linux:
     needs: read-version
     runs-on: ubuntu-latest
@@ -107,7 +126,7 @@ jobs:
           path: dist/*.dmg
 
   release:
-    needs: [build-linux, build-windows, build-macos, read-version]
+    needs: [build-linux, build-windows, build-macos, build-extension, read-version]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -147,6 +166,11 @@ jobs:
               cp "$f" "renamed/macos-LockIt-${VERSION}-arm64.dmg"
             fi
             i=$((i + 1))
+          done
+
+          # Extension
+          for f in combined-artifacts/extension-build/*; do
+            cp "$f" "renamed/"
           done
 
       - name: Create GitHub Release

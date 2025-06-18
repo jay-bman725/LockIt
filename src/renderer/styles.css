@@ -781,27 +781,239 @@ body {
     text-decoration: underline;
 }
 
-/* Responsive adjustments for update modal */
+/* Blocked Websites Tab Styles */
+.add-website-form {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.input-group input {
+    flex: 1;
+}
+
+.input-group .btn {
+    flex-shrink: 0;
+    min-width: auto;
+    padding: 8px 16px;
+}
+
+.websites-container {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.section-subheader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.section-subheader h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.websites-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.website-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.website-item:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.website-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.website-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.website-details h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 2px;
+}
+
+.website-details .website-url {
+    font-size: 12px;
+    color: #718096;
+}
+
+.website-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.website-actions .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: auto;
+}
+
+/* Extension Integration Styles */
+.extension-info {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.extension-info h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 15px;
+}
+
+.integration-status {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.installation-help {
+    margin-top: 20px;
+}
+
+.installation-help h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 10px;
+}
+
+.installation-help ol {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.installation-help li {
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.installation-help code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.help-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.help-actions .btn {
+    padding: 8px 16px;
+    font-size: 12px;
+}
+
+.header-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.header-info .info-icon {
+    font-size: 12px;
+}
+
+.header-info small {
+    color: #718096;
+    font-size: 12px;
+}
+
+/* Status indicators for extension integration */
+.status-value.status-connected {
+    color: #38a169;
+    font-weight: 600;
+}
+
+.status-value.status-disconnected {
+    color: #e53e3e;
+    font-weight: 600;
+}
+
+.status-value.status-checking {
+    color: #d69e2e;
+    font-weight: 600;
+}
+
+/* Responsive design for websites tab */
 @media (max-width: 768px) {
-    .update-modal {
-        width: 95vw;
-        max-width: 95vw;
-        height: 95vh;
-        max-height: 95vh;
-    }
-    
-    .changelog-content {
-        max-height: calc(95vh - 280px);
-        font-size: 12px;
-    }
-    
-    .version-comparison {
-        flex-direction: column;
+    .integration-status {
+        grid-template-columns: 1fr;
         gap: 10px;
     }
     
-    .version-arrow {
-        transform: rotate(90deg);
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .help-actions {
+        flex-direction: column;
+    }
+    
+    .help-actions .btn {
+        width: 100%;
+    }
+    
+    .website-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .website-actions {
+        width: 100%;
+        justify-content: flex-end;
     }
 }
 

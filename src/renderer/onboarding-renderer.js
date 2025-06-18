@@ -4,7 +4,8 @@ let currentStep = 1;
 let settings = {
     pin: '',
     masterPassword: '',
-    unlockDuration: 60000
+    unlockDuration: 60000,
+    chromeExtension: false
 };
 
 // Initialize onboarding
@@ -17,10 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
         durationSelect.addEventListener('change', updateDurationSummary);
         updateDurationSummary(); // Set initial value
     }
+    
+    // Initialize Chrome extension options
+    initializeChromeExtensionStep();
+    
+    // Set up GitHub download link
+    setupGitHubDownloadLink();
 });
 
 function nextStep() {
-    if (currentStep < 4) {
+    if (currentStep < 5) {
         showStep(currentStep + 1);
     }
 }
@@ -73,7 +80,7 @@ function updateProgress(fromStep, toStep) {
     }
     
     // Remove active class from future steps
-    for (let i = toStep + 1; i <= 4; i++) {
+    for (let i = toStep + 1; i <= 5; i++) {
         const futureStep = document.querySelector(`.progress-step[data-step="${i}"]`);
         if (futureStep) {
             futureStep.classList.remove('active', 'completed');
@@ -282,6 +289,9 @@ document.addEventListener('keydown', (event) => {
                 validateMasterPasswordAndNext();
                 break;
             case 4:
+                validateChromeExtensionAndNext();
+                break;
+            case 5:
                 completeOnboarding();
                 break;
         }
@@ -292,7 +302,124 @@ document.addEventListener('keydown', (event) => {
 settings = {
     pin: '',
     masterPassword: '',
-    unlockDuration: 60000
+    unlockDuration: 60000,
+    chromeExtension: false
 };
 
 console.log('🚀 Onboarding renderer loaded');
+
+function initializeChromeExtensionStep() {
+    // Add click handlers for option cards
+    const optionCards = document.querySelectorAll('.option-card');
+    optionCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const option = card.getAttribute('data-option');
+            selectChromeExtensionOption(option);
+        });
+    });
+}
+
+function selectChromeExtensionOption(option) {
+    // Remove previous selections
+    document.querySelectorAll('.option-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Select the chosen option
+    const selectedCard = document.querySelector(`.option-card[data-option="${option}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+    
+    // Update settings
+    settings.chromeExtension = (option === 'enable');
+    
+    // Show/hide instructions based on selection
+    const instructions = document.getElementById('extensionInstructions');
+    if (option === 'enable') {
+        instructions.style.display = 'block';
+    } else {
+        instructions.style.display = 'none';
+    }
+    
+    // Enable continue button
+    const nextButton = document.getElementById('chromeExtensionNext');
+    if (nextButton) {
+        nextButton.disabled = false;
+    }
+    
+    // Update summary
+    updateExtensionSummary();
+    
+    console.log('🌐 Chrome extension option selected:', option);
+}
+
+function validateChromeExtensionAndNext() {
+    if (settings.chromeExtension === undefined || settings.chromeExtension === null) {
+        showError('Please select an option for the Chrome extension');
+        return;
+    }
+    
+    console.log('✅ Chrome extension choice validated:', settings.chromeExtension);
+    nextStep();
+}
+
+async function setupGitHubDownloadLink() {
+    const downloadLink = document.getElementById('extensionDownloadLink');
+    if (downloadLink) {
+        try {
+            // Get version from main process
+            const version = await ipcRenderer.invoke('get-app-version');
+            
+            // Update link text with version
+            downloadLink.textContent = `📦 Download LockIt Extension v${version}`;
+        } catch (error) {
+            console.error('Error setting up GitHub download link:', error);
+            // Fallback to default version
+            const version = '1.1.0';
+            downloadLink.textContent = `📦 Download LockIt Extension v${version}`;
+        }
+    }
+}
+
+async function openGitHubReleases() {
+    try {
+        const version = await ipcRenderer.invoke('get-app-version');
+        const githubUrl = `https://github.com/jay-bman725/LockIt/releases/tag/v${version}`;
+        
+        // Open in default browser via IPC
+        await ipcRenderer.invoke('open-external-url', githubUrl);
+        console.log('✅ GitHub releases page opened in default browser');
+    } catch (error) {
+        console.error('Error opening GitHub releases:', error);
+        showError('Failed to open GitHub releases page');
+    }
+}
+
+function updateExtensionSummary() {
+    const summaryElement = document.getElementById('extensionSummary');
+    if (summaryElement) {
+        summaryElement.textContent = settings.chromeExtension ? 'Enabled' : 'Disabled';
+    }
+}
+
+function showTemporaryMessage(message) {
+    const originalShowError = showError;
+    
+    // Temporarily override error styling for success message
+    const errorToast = document.getElementById('errorToast');
+    const originalBgColor = errorToast?.style.backgroundColor;
+    
+    if (errorToast) {
+        errorToast.style.backgroundColor = '#4CAF50';
+    }
+    
+    originalShowError(message);
+    
+    // Restore original styling after message is shown
+    setTimeout(() => {
+        if (errorToast) {
+            errorToast.style.backgroundColor = originalBgColor || '';
+        }
+    }, 100);
+}

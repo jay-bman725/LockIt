@@ -5,7 +5,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/🔐-LockIt-blue?style=for-the-badge" alt="LockIt Logo">
-    <img src="https://img.shields.io/badge/version-1.0.5-green?style=for-the-badge" alt="Version">
+    <img src="https://img.shields.io/badge/version-1.1.0-green?style=for-the-badge" alt="Version">
     <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge" alt="Platform">
   </p>
 
@@ -176,10 +176,12 @@ Yes, LockIt is designed for productivity and roommate protection, not as a secur
 <summary><strong>Does LockIt work with all applications?</strong></summary>
 <br>
 LockIt works with most desktop applications but may have limitations with:
+
 - System applications
+
 - Full-screen games
+
 - Applications with elevated privileges
-- Browser tabs (locks the entire browser, not individual tabs)
 </details>
 
 <details>
@@ -200,7 +202,7 @@ No, LockIt is designed to be lightweight:
 <details>
 <summary><strong>Can I schedule when apps are locked?</strong></summary>
 <br>
-Scheduled locking is planned for version 1.1. Currently, apps are locked immediately when monitoring starts.
+Scheduled locking is planned for version 1.2.0 Currently, apps are locked immediately when monitoring starts.
 </details>
 
 ## 🛠️ Troubleshooting
