@@ -1,6 +1,24 @@
 # Changelog
 **All dates are in YYYY/MM/DD (Year-Month-Day)**
 
+## [1.1.2] - 2025-06-18
+
+### Bug Fixes
+
+- **Chrome Extension Tab Display Fix**: Fixed issue where Chrome extension settings were appearing in the wrong location
+  - Added missing "Blocked Websites" tab button that was causing Chrome extension content to display incorrectly
+  - Chrome extension settings now properly appear in their own dedicated tab instead of overlapping with other content
+  - Fixed tab navigation to ensure Settings tab content displays correctly when Chrome extension is enabled
+  - Chrome extension tab is now properly hidden when the extension is disabled and shown when enabled
+
+### UI Improvements
+
+- **Enhanced Chrome Extension Toggle**: Improved the Chrome extension setting in Settings tab
+  - Replaced basic checkbox with modern toggle switch design
+  - Added smooth transitions and visual feedback
+  - Chrome extension toggle now only takes effect after clicking "Save Settings" instead of immediately
+  - Improved visual hierarchy and spacing in settings form
+
 ## [1.1.1] - 2025-06-18
 
 ### Bug Fixes

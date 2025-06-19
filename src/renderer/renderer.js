@@ -67,6 +67,7 @@ function cacheElements() {
         // Settings
         pinInput: document.getElementById('pinInput'),
         unlockDuration: document.getElementById('unlockDuration'),
+        chromeExtensionToggle: document.getElementById('chromeExtensionToggle'),
         saveSettingsBtn: document.getElementById('saveSettingsBtn'),
         resetSettingsBtn: document.getElementById('resetSettingsBtn'),
         
@@ -347,6 +348,7 @@ function filterApps() {
 function loadSettingsForm() {
     elements.pinInput.value = state.settings.pin;
     elements.unlockDuration.value = state.settings.unlockDuration;
+    elements.chromeExtensionToggle.checked = state.settings.chromeExtensionEnabled || false;
 }
 
 // Save settings
@@ -354,7 +356,8 @@ async function saveSettings() {
     try {
         const newSettings = {
             pin: elements.pinInput.value,
-            unlockDuration: parseInt(elements.unlockDuration.value)
+            unlockDuration: parseInt(elements.unlockDuration.value),
+            chromeExtensionEnabled: elements.chromeExtensionToggle.checked
         };
         
         if (!newSettings.pin || newSettings.pin.length !== 5 || !/^\d{5}$/.test(newSettings.pin)) {
@@ -369,6 +372,7 @@ async function saveSettings() {
         
         await ipcRenderer.invoke('set-settings', newSettings);
         state.settings = newSettings;
+        configureUIForChromeExtension();
         showToast('Settings saved successfully');
     } catch (error) {
         console.error('Error saving settings:', error);
@@ -700,11 +704,11 @@ function configureUIForChromeExtension() {
     if (!chromeExtensionEnabled) {
         // Hide the websites tab and panel
         if (websitesTabBtn) {
-            websitesTabBtn.style.display = 'none';
+            websitesTabBtn.classList.remove('chrome-extension-enabled');
             console.log('🌐 Chrome extension disabled - hiding websites tab');
         }
         if (websitesTabPanel) {
-            websitesTabPanel.style.display = 'none';
+            websitesTabPanel.classList.remove('chrome-extension-enabled');
         }
         
         // If the websites tab was currently active, switch to locked apps tab
@@ -712,13 +716,13 @@ function configureUIForChromeExtension() {
             switchTab('apps');
         }
     } else {
-        // Ensure the websites tab is visible
+        // Show the websites tab and panel
         if (websitesTabBtn) {
-            websitesTabBtn.style.display = 'block';
+            websitesTabBtn.classList.add('chrome-extension-enabled');
             console.log('🌐 Chrome extension enabled - showing websites tab');
         }
         if (websitesTabPanel) {
-            websitesTabPanel.style.display = 'block';
+            websitesTabPanel.classList.add('chrome-extension-enabled');
         }
     }
 }

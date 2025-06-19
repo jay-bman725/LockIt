@@ -1393,6 +1393,7 @@ ipcMain.handle('get-app-version', () => {
 ipcMain.handle('set-settings', (event, settings) => {
   if (settings.pin) store.set('pin', settings.pin);
   if (settings.unlockDuration) store.set('unlockDuration', settings.unlockDuration);
+  if (settings.chromeExtensionEnabled !== undefined) store.set('chromeExtensionEnabled', settings.chromeExtensionEnabled);
   return true;
 });
 

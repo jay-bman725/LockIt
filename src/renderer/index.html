@@ -39,8 +39,8 @@
             <div class="tabs">
                 <button class="tab-btn active" data-tab="apps">🔒 Locked Apps</button>
                 <button class="tab-btn" data-tab="available">📱 Available Apps</button>
+                <button class="tab-btn" data-tab="websites">🌐 Blocked Websites</button>
                 <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
-
             </div>
 
             <!-- Tab Content -->
@@ -183,6 +183,19 @@
                                 <option value="3600000">1 hour</option>
                             </select>
                             <small>How long applications stay unlocked after entering the PIN.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="toggle-container">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="chromeExtensionToggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <label for="chromeExtensionToggle" class="toggle-label">
+                                    Enable Chrome Extension Integration
+                                </label>
+                            </div>
+                            <small>Enable website blocking through the LockIt Chrome extension.</small>
                         </div>
 
                         <div class="form-actions">

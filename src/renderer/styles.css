@@ -182,6 +182,20 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Hide websites tab by default - shown when Chrome extension is enabled */
+.tab-btn[data-tab="websites"] {
+    display: none;
+}
+
+.tab-btn[data-tab="websites"].chrome-extension-enabled {
+    display: block;
+}
+
+/* Websites tab panel follows normal tab panel behavior, but is hidden when extension is disabled */
+#websites-tab:not(.chrome-extension-enabled) {
+    display: none !important;
+}
+
 /* Tab Content */
 .tab-content {
     flex: 1;
@@ -376,6 +390,72 @@ body {
     margin-top: 5px;
     color: #718096;
     font-size: 12px;
+}
+
+/* Custom Toggle Switch for Chrome Extension */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+}
+
+.toggle-switch input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e0;
+    transition: 0.3s;
+    border-radius: 28px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-switch input:focus + .toggle-slider {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.toggle-label {
+    font-weight: 500;
+    color: #4a5568;
+    cursor: pointer;
+    user-select: none;
 }
 
 .form-actions {
