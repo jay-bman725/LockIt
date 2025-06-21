@@ -198,6 +198,113 @@
                             <small>Enable website blocking through the LockIt Chrome extension.</small>
                         </div>
 
+                        <!-- Scheduled Monitoring Section -->
+                        <div class="settings-section">
+                            <h3>📅 Scheduled Monitoring</h3>
+                            
+                            <div class="form-group">
+                                <div class="toggle-container">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="scheduledMonitoringToggle">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <label for="scheduledMonitoringToggle" class="toggle-label">
+                                        Enable Scheduled Monitoring
+                                    </label>
+                                </div>
+                                <small>Automatically activate monitoring during specific hours and days.</small>
+                            </div>
+
+                            <div id="scheduleSettings" class="schedule-settings">
+                                <div class="time-settings">
+                                    <div class="form-group">
+                                        <label for="scheduleStartTime">Start Time:</label>
+                                        <input type="time" id="scheduleStartTime" value="09:00">
+                                        <small>When to start monitoring each day</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="scheduleEndTime">End Time:</label>
+                                        <input type="time" id="scheduleEndTime" value="17:00">
+                                        <small>When to stop monitoring each day</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Active Days:</label>
+                                    <div class="days-selector">
+                                        <label class="day-checkbox">
+                                            <input type="checkbox" data-day="0" id="day-sunday">
+                                            <span>Sun</span>
+                                        </label>
+                                        <label class="day-checkbox">
+                                            <input type="checkbox" data-day="1" id="day-monday" checked>
+                                            <span>Mon</span>
+                                        </label>
+                                        <label class="day-checkbox">
+                                            <input type="checkbox" data-day="2" id="day-tuesday" checked>
+                                            <span>Tue</span>
+                                        </label>
+                                        <label class="day-checkbox">
+                                            <input type="checkbox" data-day="3" id="day-wednesday" checked>
+                                            <span>Wed</span>
+                                        </label>
+                                        <label class="day-checkbox">
+                                            <input type="checkbox" data-day="4" id="day-thursday" checked>
+                                            <span>Thu</span>
+                                        </label>
+                                        <label class="day-checkbox">
+                                            <input type="checkbox" data-day="5" id="day-friday" checked>
+                                            <span>Fri</span>
+                                        </label>
+                                        <label class="day-checkbox">
+                                            <input type="checkbox" data-day="6" id="day-saturday">
+                                            <span>Sat</span>
+                                        </label>
+                                    </div>
+                                    <small>Select which days the schedule should be active</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="toggle-container">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="autoStartScheduledMonitoring" checked>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <label for="autoStartScheduledMonitoring" class="toggle-label">
+                                            Auto-start monitoring during scheduled hours
+                                        </label>
+                                    </div>
+                                    <small>Automatically start monitoring when entering scheduled hours.</small>
+                                </div>
+
+                                <div class="schedule-status">
+                                    <div class="status-indicator">
+                                        <span id="scheduleStatusText">Schedule inactive</span>
+                                        <span id="nextScheduleEvent"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Auto-Restart Monitoring Section -->
+                        <div class="settings-section">
+                            <h3>🔄 Auto-Restart Protection</h3>
+                            
+                            <div class="form-group">
+                                <div class="toggle-container">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="autoRestartMonitoringToggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <label for="autoRestartMonitoringToggle" class="toggle-label">
+                                        Auto-restart monitoring after unexpected shutdown
+                                    </label>
+                                </div>
+                                <small>Automatically resume monitoring if the app crashes or is force-quit while monitoring was active.</small>
+                            </div>
+                        </div>
+
                         <div class="form-actions">
                             <button id="saveSettingsBtn" class="btn btn-primary">
                                 💾 Save Settings
@@ -253,6 +360,29 @@
             <div class="modal-actions">
                 <button id="cancelMasterPasswordBtn" class="btn btn-secondary">Cancel</button>
                 <button id="verifyMasterPasswordBtn" class="btn btn-primary">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN Verification Modal -->
+    <div id="pinVerificationModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔐 PIN Required</h3>
+                <p>Please enter your PIN to stop monitoring.</p>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modalPinInput">5-Digit PIN:</label>
+                    <input type="password" id="modalPinInput" placeholder="Enter your 5-digit PIN" maxlength="5" pattern="[0-9]{5}" autocomplete="current-password">
+                    <small>This prevents unauthorized stopping of app monitoring</small>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button id="cancelPinBtn" class="btn btn-secondary">Cancel</button>
+                <button id="verifyPinBtn" class="btn btn-primary">Stop Monitoring</button>
             </div>
         </div>
     </div>

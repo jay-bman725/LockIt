@@ -1,6 +1,139 @@
 # Changelog
 **All dates are in YYYY/MM/DD (Year-Month-Day)**
 
+## [1.2.0] - 2025-06-20
+
+### Major Security Enhancements
+
+#### PIN-Protected Stop Monitoring
+- **Enhanced Security Control**: Users must now enter their 5-digit PIN to stop monitoring
+  - **PIN verification modal**: Clean, secure interface for PIN entry when stopping monitoring
+  - **Failed attempt tracking**: Monitors incorrect PIN attempts (10 attempts before security lockdown)
+  - **Security lockdown integration**: Seamlessly integrates with existing security measures
+  - **Keyboard support**: Enter key submits, intuitive user experience
+  - **Visual feedback**: Clear error messages with remaining attempt counts
+
+#### Scheduled Monitoring System
+- **Time-Based App Locking**: Configure monitoring to automatically activate during specific hours and days
+  - **Flexible scheduling**: Set custom start/end times with 24-hour format support
+  - **Day selection**: Choose any combination of days (Monday-Friday default, customizable)
+  - **Overnight schedules**: Support for schedules spanning midnight (e.g., 22:00-06:00)
+  - **Auto-start option**: Automatically begin monitoring during scheduled hours
+  - **Real-time status display**: Live indicators showing current schedule state
+  - **Next event predictions**: Shows when monitoring will start/stop next
+
+#### Auto-Restart Monitoring Protection
+- **Crash Recovery**: Automatically resume monitoring after unexpected app shutdowns
+  - **Intelligent crash detection**: Distinguishes between graceful shutdowns and crashes
+  - **State persistence**: Tracks monitoring status across app sessions
+  - **Safety checks**: Respects security lockdown and user preferences
+  - **User control**: Configurable setting to enable/disable auto-restart
+  - **Grace period handling**: 5-second window for proper shutdown detection
+  - **Notification system**: Clear feedback when monitoring auto-restarts
+
+### Advanced UI Improvements
+
+#### Scheduled Monitoring Interface
+- **Comprehensive settings panel**: Dedicated section for schedule configuration
+  - **Interactive time pickers**: Easy-to-use HTML5 time inputs
+  - **Visual day selector**: Click-to-toggle day buttons with visual feedback
+  - **Real-time schedule status**: Dynamic status indicators with color coding
+  - **Schedule preview**: Shows current status and next scheduled events
+  - **Toggle controls**: Modern switch designs for all boolean settings
+
+#### Enhanced Security Settings
+- **Auto-restart protection toggle**: User control over crash recovery behavior
+  - **Clear descriptions**: Helpful explanations for each security feature
+  - **Visual hierarchy**: Well-organized settings sections with clear groupings
+  - **Consistent styling**: Modern toggle switches and form elements
+  - **Responsive design**: Adapts to different window sizes and screen densities
+
+### Technical Architecture Improvements
+
+#### Backend Enhancements
+- **Persistent state tracking**: Enhanced storage system for monitoring state
+  - **Session management**: Robust tracking of app sessions and shutdown types
+  - **Schedule checking**: Minute-by-minute schedule validation with smart logic
+  - **Auto-restart logic**: Comprehensive checks for safe monitoring restoration
+  - **IPC expansion**: Extended inter-process communication for new features
+  - **Error handling**: Improved error recovery and graceful degradation
+
+#### Frontend Enhancements
+- **Modal system expansion**: New PIN verification modal with existing design patterns
+  - **Event listener management**: Enhanced event handling for schedule and auto-restart settings
+  - **State synchronization**: Real-time updates between main process and renderer
+  - **Form validation**: Comprehensive validation for schedule inputs and settings
+  - **Performance optimization**: Efficient periodic updates and state management
+
+#### Data Persistence
+- **Extended settings schema**: New settings for scheduling and auto-restart features
+  - **Backward compatibility**: Seamless upgrades from previous versions
+  - **Default configurations**: Sensible defaults for new features
+  - **Data migration**: Automatic handling of new settings on first run
+  - **Corruption recovery**: Robust handling of corrupted or missing settings
+
+### User Experience Enhancements
+
+#### Smart Notifications
+- **Contextual toast messages**: Informative notifications for all new features
+  - **Schedule events**: Notifications when entering/leaving scheduled hours
+  - **Auto-restart alerts**: Clear feedback when monitoring auto-restarts
+  - **PIN validation**: Helpful error messages for PIN entry
+  - **Success confirmations**: Positive feedback for successful operations
+
+#### Workflow Improvements
+- **Seamless scheduling**: Easy setup of work hours, study time, or parental controls
+  - **Common presets**: Default Monday-Friday 9AM-5PM schedule
+  - **Custom flexibility**: Support for any schedule pattern
+  - **Visual feedback**: Real-time indicators of schedule state
+  - **Quick toggles**: Easy enable/disable for all features
+
+### Security & Reliability
+
+#### Enhanced Protection
+- **Multi-layered security**: PIN protection, scheduled control, and crash recovery
+  - **No security bypass**: All new features respect existing security measures
+  - **Graceful degradation**: Features fail safely without compromising security
+  - **User control**: All features can be disabled while maintaining core functionality
+  - **Audit trail**: Comprehensive logging for security events and state changes
+
+#### Reliability Improvements
+- **Crash resilience**: Monitoring continues even after app crashes or system restarts
+  - **State recovery**: Intelligent restoration of previous monitoring state
+  - **Error boundaries**: Isolated error handling prevents cascading failures
+  - **Performance monitoring**: Efficient resource usage for background operations
+  - **Memory management**: Proper cleanup and resource deallocation
+
+### Bug Fixes
+
+#### Critical Settings Save Issue
+- **Settings Not Persisting After Master Password Verification**: Fixed critical bug where settings changes were lost after master password verification
+  - **Root Cause**: The `pendingAction` variable was being cleared too early in the master password verification flow, causing the actual save operation to be skipped
+  - **Symptoms**: Users could change PIN, unlock duration, or other settings, verify their master password successfully, but changes wouldn't actually be saved
+  - **Impact**: Most notably affected PIN changes - users would set a new PIN like "12345" but the old PIN would still be required for app unlocking
+  - **Resolution**: Fixed the timing issue in `hideMasterPasswordModal()` function to preserve the pending action until after execution
+  - **Verification**: Added comprehensive debugging throughout the settings save process to ensure proper execution flow
+
+#### Settings Form Population
+- **Settings Form Not Loading Current Values**: Fixed issue where settings form fields were empty on app startup
+  - **Issue**: The `loadSettingsForm()` function existed but was only called when switching to settings tab, not during initial app load
+  - **Result**: Users saw empty form fields even when settings were properly saved, leading to confusion about current configuration
+  - **Fix**: Added `loadSettingsForm()` call to the main `render()` function to ensure settings are always displayed correctly
+  - **Improvement**: Settings form now properly shows current values on app startup and after saving changes
+
+### Breaking Changes
+- **PIN Required for Stop**: Users can no longer stop monitoring without entering their PIN
+  - This change enhances security by preventing unauthorized disabling of monitoring
+  - Existing users will notice the new PIN requirement immediately upon updating
+  - This affects both manual stop requests and any automated stopping (except scheduled)
+  - If wanted, this setting can be turned off through settings
+
+### Migration Notes
+- **Automatic Migration**: All new settings have sensible defaults and require no user action
+- **Existing Schedules**: Users upgrading will have scheduled monitoring disabled by default
+- **Auto-restart**: Enabled by default but only triggers after unexpected shutdowns
+- **Settings Preservation**: All existing settings (PIN, unlock duration, etc.) are preserved
+
 ## [1.1.2] - 2025-06-18
 
 ### Bug Fixes

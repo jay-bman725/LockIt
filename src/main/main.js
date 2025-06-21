@@ -35,7 +35,18 @@ const store = new Store({
     isInSecurityLockdown: false,
     lastLockdownTime: null,
     dismissedUpdates: [], // Track updates user chose not to see again
-    lastUpdateCheck: null // Track last update check time
+    lastUpdateCheck: null, // Track last update check time
+    // Scheduled monitoring settings
+    scheduledMonitoringEnabled: false, // Enable/disable scheduled monitoring
+    scheduleStartTime: '09:00', // Default start time (24-hour format)
+    scheduleEndTime: '17:00', // Default end time (24-hour format)
+    scheduleDays: [1, 2, 3, 4, 5], // Default: Monday-Friday (0=Sunday, 6=Saturday)
+    autoStartScheduledMonitoring: true, // Auto-start monitoring during scheduled hours
+    // Auto-restart monitoring settings
+    wasMonitoringEnabled: false, // Track if monitoring was active before shutdown
+    lastShutdownTime: null, // Track when the app was last shut down
+    autoRestartMonitoring: true, // Enable auto-restart on app reboot
+    lastAppSession: null // Track app session for crash detection
   }
 });
 
@@ -57,6 +68,11 @@ let securityLockdownRefocusInterval;
 let lockOverlayRefocusInterval;
 let temporaryUnlocks = new Map(); // Track temporary unlocks by process info
 let currentLockedApp = null; // Track currently locked app details
+
+// Scheduled monitoring variables
+let scheduleCheckInterval = null; // Check schedule every minute
+let isInScheduledHours = false; // Track if currently in scheduled hours
+let wasAutoStarted = false; // Track if monitoring was auto-started by schedule
 
 // HTTP Server for Chrome Extension Integration
 let httpServer = null;
@@ -626,6 +642,9 @@ async function startMonitoring() {
 
   monitoringInterval = setInterval(async () => {
     try {
+      // Update monitoring state tracking periodically
+      trackMonitoringState();
+      
       // Clean up expired unlocks every monitoring cycle
       cleanupExpiredUnlocks();
       
@@ -734,6 +753,9 @@ async function startMonitoring() {
       console.error('Error during monitoring:', error);
     }
   }, 1000); // Check every second
+  
+  // Track monitoring state for auto-restart
+  trackMonitoringState();
 }
 
 // Stop monitoring
@@ -771,7 +793,228 @@ function stopMonitoring() {
   
   isMonitoring = false;
   currentLockedApp = null;
+  
+  // Update monitoring state tracking
+  store.set('wasMonitoringEnabled', false);
+  
   console.log('⏹️ Stopped app monitoring and cleaned up all focus intervals');
+}
+
+// Scheduled Monitoring Functions
+function isCurrentlyInScheduledHours() {
+  const settings = store.get();
+  
+  if (!settings.scheduledMonitoringEnabled) {
+    return false;
+  }
+  
+  const now = new Date();
+  const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
+  const currentTime = now.getHours() * 60 + now.getMinutes(); // Minutes since midnight
+  
+  // Check if today is a scheduled day
+  if (!settings.scheduleDays.includes(currentDay)) {
+    return false;
+  }
+  
+  // Parse start and end times
+  const [startHour, startMin] = settings.scheduleStartTime.split(':').map(Number);
+  const [endHour, endMin] = settings.scheduleEndTime.split(':').map(Number);
+  
+  const startTime = startHour * 60 + startMin;
+  const endTime = endHour * 60 + endMin;
+  
+  // Handle overnight schedules (e.g., 22:00 to 06:00)
+  if (startTime > endTime) {
+    return currentTime >= startTime || currentTime < endTime;
+  } else {
+    return currentTime >= startTime && currentTime < endTime;
+  }
+}
+
+function startScheduleChecker() {
+  if (scheduleCheckInterval) {
+    clearInterval(scheduleCheckInterval);
+  }
+  
+  console.log('📅 Starting schedule checker');
+  
+  // Check schedule every minute
+  scheduleCheckInterval = setInterval(() => {
+    const shouldBeActive = isCurrentlyInScheduledHours();
+    const settings = store.get();
+    
+    if (shouldBeActive && !isInScheduledHours) {
+      // Entering scheduled hours
+      isInScheduledHours = true;
+      console.log('📅 Entering scheduled monitoring hours');
+      
+      if (settings.autoStartScheduledMonitoring && !isMonitoring) {
+        console.log('🚀 Auto-starting monitoring for scheduled hours');
+        startMonitoring();
+        wasAutoStarted = true;
+        
+        // Notify UI if main window exists
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('schedule-status-changed', {
+            inScheduledHours: true,
+            autoStarted: true
+          });
+        }
+      }
+    } else if (!shouldBeActive && isInScheduledHours) {
+      // Leaving scheduled hours
+      isInScheduledHours = false;
+      console.log('📅 Leaving scheduled monitoring hours');
+      
+      if (wasAutoStarted && isMonitoring) {
+        console.log('⏹️ Auto-stopping monitoring after scheduled hours');
+        stopMonitoring();
+        wasAutoStarted = false;
+        
+        // Notify UI if main window exists
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('schedule-status-changed', {
+            inScheduledHours: false,
+            autoStopped: true
+          });
+        }
+      }
+    }
+    
+    // Update UI with current schedule status
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('schedule-status-update', {
+        inScheduledHours: isInScheduledHours,
+        shouldBeActive: shouldBeActive
+      });
+    }
+  }, 60000); // Check every minute
+  
+  // Initial check
+  isInScheduledHours = isCurrentlyInScheduledHours();
+  const settings = store.get();
+  
+  if (isInScheduledHours && settings.autoStartScheduledMonitoring && !isMonitoring) {
+    console.log('🚀 Initial auto-start for scheduled hours');
+    startMonitoring();
+    wasAutoStarted = true;
+  }
+}
+
+function stopScheduleChecker() {
+  if (scheduleCheckInterval) {
+    clearInterval(scheduleCheckInterval);
+    scheduleCheckInterval = null;
+    console.log('📅 Stopped schedule checker');
+  }
+  
+  isInScheduledHours = false;
+  wasAutoStarted = false;
+}
+
+function getScheduleStatus() {
+  const settings = store.get();
+  const now = new Date();
+  const inScheduledHours = isCurrentlyInScheduledHours();
+  
+  return {
+    enabled: settings.scheduledMonitoringEnabled,
+    inScheduledHours: inScheduledHours,
+    startTime: settings.scheduleStartTime,
+    endTime: settings.scheduleEndTime,
+    scheduleDays: settings.scheduleDays,
+    autoStart: settings.autoStartScheduledMonitoring,
+    wasAutoStarted: wasAutoStarted,
+    currentTime: now.toLocaleTimeString(),
+    currentDay: now.getDay()
+  };
+}
+
+// Auto-Restart Monitoring Functions
+function trackMonitoringState() {
+  // Update the stored monitoring state
+  store.set('wasMonitoringEnabled', isMonitoring);
+  store.set('lastAppSession', Date.now());
+  
+  if (isMonitoring) {
+    console.log('📊 Tracking: Monitoring is currently ACTIVE');
+  }
+}
+
+function wasUnexpectedShutdown() {
+  const lastSession = store.get('lastAppSession');
+  const lastShutdown = store.get('lastShutdownTime');
+  const gracefulShutdownWindow = 5000; // 5 seconds
+  
+  if (!lastSession) {
+    return false; // First run
+  }
+  
+  // If no graceful shutdown was recorded, or shutdown was too long after last session
+  if (!lastShutdown || (lastShutdown - lastSession) > gracefulShutdownWindow) {
+    console.log('🚨 Detected unexpected shutdown (crash or force quit)');
+    return true;
+  }
+  
+  console.log('✅ Previous shutdown was graceful');
+  return false;
+}
+
+function recordGracefulShutdown() {
+  store.set('lastShutdownTime', Date.now());
+  // DON'T clear wasMonitoringEnabled - we want to restart monitoring even after graceful shutdowns
+  console.log('💾 Recording graceful shutdown - keeping monitoring state for restart');
+}
+
+function shouldAutoRestartMonitoring() {
+  const settings = store.get();
+  
+  // Check if auto-restart is enabled
+  if (!settings.autoRestartMonitoring) {
+    console.log('🔴 Auto-restart monitoring is disabled');
+    return false;
+  }
+  
+  // Check if monitoring was active before shutdown
+  if (!settings.wasMonitoringEnabled) {
+    console.log('🔴 Monitoring was not active before shutdown');
+    return false;
+  }
+  
+  // ALWAYS restart if monitoring was enabled - remove graceful shutdown check
+  console.log('� Monitoring was previously enabled - ALWAYS restarting regardless of shutdown type');
+  
+  // Check if we're in security lockdown
+  if (isInSecurityLockdown()) {
+    console.log('🔴 System is in security lockdown, not auto-restarting monitoring');
+    return false;
+  }
+  
+  console.log('✅ All conditions met for auto-restart monitoring');
+  return true;
+}
+
+function attemptAutoRestartMonitoring() {
+  if (shouldAutoRestartMonitoring()) {
+    console.log('🚀 Auto-restarting monitoring after unexpected shutdown');
+    
+    setTimeout(() => {
+      startMonitoring();
+      
+      // Notify UI if main window exists
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('monitoring-auto-restarted', {
+          reason: 'unexpected-shutdown',
+          timestamp: new Date().toLocaleString()
+        });
+      }
+      
+      // Clear the flag after successful restart
+      store.set('wasMonitoringEnabled', false);
+      
+    }, 2000); // Small delay to ensure app is fully loaded
+  }
 }
 
 // Enhanced security event listeners for both lock types
@@ -1381,7 +1624,13 @@ ipcMain.handle('get-settings', () => {
   return {
     pin: store.get('pin'),
     unlockDuration: store.get('unlockDuration'),
-    chromeExtensionEnabled: store.get('chromeExtensionEnabled', false)
+    chromeExtensionEnabled: store.get('chromeExtensionEnabled', false),
+    scheduledMonitoringEnabled: store.get('scheduledMonitoringEnabled', false),
+    scheduleStartTime: store.get('scheduleStartTime', '09:00'),
+    scheduleEndTime: store.get('scheduleEndTime', '17:00'),
+    scheduleDays: store.get('scheduleDays', [1, 2, 3, 4, 5]),
+    autoStartScheduledMonitoring: store.get('autoStartScheduledMonitoring', true),
+    autoRestartMonitoring: store.get('autoRestartMonitoring', true)
   };
 });
 
@@ -1391,9 +1640,30 @@ ipcMain.handle('get-app-version', () => {
 });
 
 ipcMain.handle('set-settings', (event, settings) => {
-  if (settings.pin) store.set('pin', settings.pin);
-  if (settings.unlockDuration) store.set('unlockDuration', settings.unlockDuration);
+  if (settings.pin !== undefined) store.set('pin', settings.pin);
+  if (settings.unlockDuration !== undefined) store.set('unlockDuration', settings.unlockDuration);
   if (settings.chromeExtensionEnabled !== undefined) store.set('chromeExtensionEnabled', settings.chromeExtensionEnabled);
+  
+  // Handle scheduled monitoring settings
+  if (settings.scheduledMonitoringEnabled !== undefined) {
+    const wasEnabled = store.get('scheduledMonitoringEnabled', false);
+    store.set('scheduledMonitoringEnabled', settings.scheduledMonitoringEnabled);
+    
+    // Restart schedule checker if settings changed
+    if (wasEnabled !== settings.scheduledMonitoringEnabled) {
+      if (settings.scheduledMonitoringEnabled) {
+        startScheduleChecker();
+      } else {
+        stopScheduleChecker();
+      }
+    }
+  }
+  if (settings.scheduleStartTime !== undefined) store.set('scheduleStartTime', settings.scheduleStartTime);
+  if (settings.scheduleEndTime !== undefined) store.set('scheduleEndTime', settings.scheduleEndTime);
+  if (settings.scheduleDays !== undefined) store.set('scheduleDays', settings.scheduleDays);
+  if (settings.autoStartScheduledMonitoring !== undefined) store.set('autoStartScheduledMonitoring', settings.autoStartScheduledMonitoring);
+  if (settings.autoRestartMonitoring !== undefined) store.set('autoRestartMonitoring', settings.autoRestartMonitoring);
+  
   return true;
 });
 
@@ -1402,9 +1672,39 @@ ipcMain.handle('start-monitoring', () => {
   return true;
 });
 
-ipcMain.handle('stop-monitoring', () => {
-  stopMonitoring();
-  return true;
+ipcMain.handle('stop-monitoring', (event, enteredPin) => {
+  // Require PIN verification to stop monitoring
+  if (!enteredPin) {
+    return { success: false, error: 'PIN required to stop monitoring.' };
+  }
+  
+  // Check if in security lockdown
+  if (isInSecurityLockdown()) {
+    return { success: false, error: 'System is in security lockdown. Use master password to recover.' };
+  }
+  
+  const correctPin = store.get('pin');
+  if (!correctPin) {
+    return { success: false, error: 'PIN not configured. Please complete onboarding.' };
+  }
+  
+  if (enteredPin === correctPin) {
+    resetPinAttempts();
+    stopMonitoring();
+    console.log('✅ Monitoring stopped after PIN verification');
+    return { success: true };
+  } else {
+    const lockdownTriggered = incrementPinAttempts();
+    if (lockdownTriggered) {
+      return { success: false, error: 'Too many failed attempts. System is now in security lockdown.' };
+    } else {
+      const remainingAttempts = 10 - store.get('pinAttempts', 0);
+      return { 
+        success: false, 
+        error: `Incorrect PIN. ${remainingAttempts} attempts remaining before security lockdown.` 
+      };
+    }
+  }
 });
 
 ipcMain.handle('verify-pin', (event, enteredPin) => {
@@ -1659,6 +1959,11 @@ ipcMain.handle('open-download-url', (event, url) => {
   }
 });
 
+// Scheduled monitoring IPC handlers
+ipcMain.handle('get-schedule-status', () => {
+  return getScheduleStatus();
+});
+
 // Blocked websites IPC handlers
 ipcMain.handle('get-blocked-websites', () => {
   return store.get('blockedWebsites', []);
@@ -1718,6 +2023,14 @@ app.whenReady().then(() => {
     ensureSecurityLockdownState();
   }, 30000);
 
+  // Start scheduled monitoring checker
+  startScheduleChecker();
+
+  // Check for auto-restart monitoring after unexpected shutdown
+  setTimeout(() => {
+    attemptAutoRestartMonitoring();
+  }, 3000); // Delay to ensure app is fully loaded
+
   // Check for updates after app is ready (delayed to avoid blocking startup)
   setTimeout(() => {
     performUpdateCheck(false).then((result) => {
@@ -1745,14 +2058,18 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    stopMonitoring();
+    stopMonitoringForShutdown();
     stopHttpServer();
     app.quit();
   }
 });
 
 app.on('before-quit', () => {
-  stopMonitoring();
+  // Record graceful shutdown before stopping everything
+  recordGracefulShutdown();
+  
+  stopMonitoringForShutdown();
+  stopScheduleChecker();
   stopHttpServer();
   
   // Unregister global shortcuts

@@ -8,7 +8,13 @@ let state = {
     blockedWebsites: [],
     settings: {
         pin: null,
-        unlockDuration: null
+        unlockDuration: null,
+        scheduledMonitoringEnabled: false,
+        scheduleStartTime: '09:00',
+        scheduleEndTime: '17:00',
+        scheduleDays: [1, 2, 3, 4, 5],
+        autoStartScheduledMonitoring: true,
+        autoRestartMonitoring: true
     }
 };
 
@@ -34,8 +40,17 @@ async function init() {
     // Load initial data
     await loadData();
     
+    // Check if monitoring was active and restore it
+    await restoreMonitoringStateIfNeeded();
+    
     // Render initial state
     render();
+    
+    // Set up periodic schedule status updates (every 30 seconds)
+    setInterval(updateScheduleStatus, 30000);
+    
+    // Set up periodic monitoring state check (every 60 seconds) to ensure it stays active if needed
+    setInterval(enforceMonitoringState, 60000);
     
     console.log('✅ LockIt UI initialized');
 }
@@ -71,11 +86,29 @@ function cacheElements() {
         saveSettingsBtn: document.getElementById('saveSettingsBtn'),
         resetSettingsBtn: document.getElementById('resetSettingsBtn'),
         
+        // Scheduled Monitoring Settings
+        scheduledMonitoringToggle: document.getElementById('scheduledMonitoringToggle'),
+        scheduleSettings: document.getElementById('scheduleSettings'),
+        scheduleStartTime: document.getElementById('scheduleStartTime'),
+        scheduleEndTime: document.getElementById('scheduleEndTime'),
+        autoStartScheduledMonitoring: document.getElementById('autoStartScheduledMonitoring'),
+        scheduleStatusText: document.getElementById('scheduleStatusText'),
+        nextScheduleEvent: document.getElementById('nextScheduleEvent'),
+        
+        // Auto-Restart Monitoring
+        autoRestartMonitoringToggle: document.getElementById('autoRestartMonitoringToggle'),
+        
         // Master Password Modal
         masterPasswordModal: document.getElementById('masterPasswordModal'),
         modalMasterPasswordInput: document.getElementById('modalMasterPasswordInput'),
         verifyMasterPasswordBtn: document.getElementById('verifyMasterPasswordBtn'),
         cancelMasterPasswordBtn: document.getElementById('cancelMasterPasswordBtn'),
+        
+        // PIN Verification Modal
+        pinVerificationModal: document.getElementById('pinVerificationModal'),
+        modalPinInput: document.getElementById('modalPinInput'),
+        verifyPinBtn: document.getElementById('verifyPinBtn'),
+        cancelPinBtn: document.getElementById('cancelPinBtn'),
         
         // Toast
         toast: document.getElementById('toast'),
@@ -104,6 +137,12 @@ function cacheElements() {
         downloadExtensionBtn: document.getElementById('downloadExtensionBtn'),
         testConnectionBtn: document.getElementById('testConnectionBtn')
     };
+    
+    // Debug: Verify critical elements are found
+    console.log('🔍 Element debugging:');
+    console.log('saveSettingsBtn:', elements.saveSettingsBtn);
+    console.log('verifyMasterPasswordBtn:', elements.verifyMasterPasswordBtn);
+    console.log('masterPasswordModal:', elements.masterPasswordModal);
 }
 
 // Set up event listeners
@@ -124,8 +163,22 @@ function setupEventListeners() {
     elements.appSearch.addEventListener('input', filterApps);
     
     // Settings - require master password verification
-    elements.saveSettingsBtn.addEventListener('click', () => requestMasterPasswordForAction('save'));
+    console.log('🔗 Attaching event listeners for settings buttons...');
+    elements.saveSettingsBtn.addEventListener('click', () => {
+        console.log('💾 Save Settings button clicked!');
+        requestMasterPasswordForAction('save');
+    });
     elements.resetSettingsBtn.addEventListener('click', () => requestMasterPasswordForAction('reset'));
+    
+    // Scheduled Monitoring Event Listeners
+    elements.scheduledMonitoringToggle.addEventListener('change', toggleScheduleSettings);
+    elements.scheduleStartTime.addEventListener('change', validateScheduleTimes);
+    elements.scheduleEndTime.addEventListener('change', validateScheduleTimes);
+    
+    // Day selector checkboxes
+    document.querySelectorAll('.day-checkbox input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateScheduleDays);
+    });
     
     // PIN Input - clear field when user clicks into it
     elements.pinInput.addEventListener('focus', () => {
@@ -133,10 +186,14 @@ function setupEventListeners() {
     });
     
     // Master Password Modal
-    elements.verifyMasterPasswordBtn.addEventListener('click', verifyMasterPasswordForAction);
+    elements.verifyMasterPasswordBtn.addEventListener('click', () => {
+        console.log('🖱️ Verify Master Password button clicked');
+        verifyMasterPasswordForAction();
+    });
     elements.cancelMasterPasswordBtn.addEventListener('click', hideMasterPasswordModal);
     elements.modalMasterPasswordInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
+            console.log('⌨️ Enter key pressed in master password input');
             verifyMasterPasswordForAction();
         }
     });
@@ -146,6 +203,27 @@ function setupEventListeners() {
         if (e.target === elements.masterPasswordModal) {
             hideMasterPasswordModal();
         }
+    });
+    
+    // PIN Verification Modal
+    elements.verifyPinBtn.addEventListener('click', verifyPinForStopMonitoring);
+    elements.cancelPinBtn.addEventListener('click', hidePinVerificationModal);
+    elements.modalPinInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            verifyPinForStopMonitoring();
+        }
+    });
+    
+    // Close PIN modal when clicking outside
+    elements.pinVerificationModal.addEventListener('click', (e) => {
+        if (e.target === elements.pinVerificationModal) {
+            hidePinVerificationModal();
+        }
+    });
+    
+    // Restrict PIN input to 5 digits
+    elements.modalPinInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 5);
     });
     
     // Update functionality
@@ -177,6 +255,48 @@ function setupEventListeners() {
         switchTab('settings');
     });
     
+    // Schedule status updates from main process
+    ipcRenderer.on('schedule-status-changed', (event, data) => {
+        updateScheduleStatus();
+        
+        if (data.autoStarted) {
+            showToast('Monitoring auto-started for scheduled hours', 'info');
+            // Update monitoring button state
+            state.isMonitoring = true;
+            elements.monitorToggle.textContent = '⏸️ Stop Monitoring';
+            elements.monitorToggle.className = 'btn btn-danger';
+            updateStatus();
+        } else if (data.autoStopped) {
+            showToast('Monitoring auto-stopped after scheduled hours', 'info');
+            // Update monitoring button state
+            state.isMonitoring = false;
+            elements.monitorToggle.textContent = '▶️ Start Monitoring';
+            elements.monitorToggle.className = 'btn btn-primary';
+            updateStatus();
+        }
+    });
+    
+    ipcRenderer.on('schedule-status-update', (event, data) => {
+        updateScheduleStatus();
+    });
+    
+    // Window focus event - check monitoring state when app becomes active
+    window.addEventListener('focus', async () => {
+        console.log('🔍 Window focused - checking monitoring state...');
+        await enforceMonitoringState();
+    });
+    
+    // Auto-restart monitoring notification
+    ipcRenderer.on('monitoring-auto-restarted', (event, data) => {
+        showToast('🔄 Monitoring auto-restarted after unexpected shutdown', 'info');
+        
+        // Update monitoring button state
+        state.isMonitoring = true;
+        elements.monitorToggle.textContent = '⏸️ Stop Monitoring';
+        elements.monitorToggle.className = 'btn btn-danger';
+        updateStatus();
+    });
+    
     // Listen for update notifications from main process
     ipcRenderer.on('update-available', (event, updateInfo) => {
         showUpdateModal(updateInfo);
@@ -197,6 +317,9 @@ async function loadData() {
         
         // Load blocked websites
         await loadBlockedWebsites();
+        
+        // Load schedule settings
+        await loadScheduleSettings();
         
         // Load app version
         const appVersion = await ipcRenderer.invoke('get-app-version');
@@ -238,19 +361,16 @@ async function refreshApps() {
 async function toggleMonitoring() {
     try {
         if (state.isMonitoring) {
-            await ipcRenderer.invoke('stop-monitoring');
-            state.isMonitoring = false;
-            elements.monitorToggle.textContent = '▶️ Start Monitoring';
-            elements.monitorToggle.className = 'btn btn-primary';
-            showToast('Monitoring stopped');
+            // Show PIN verification modal when stopping monitoring
+            showPinVerificationModal();
         } else {
             await ipcRenderer.invoke('start-monitoring');
             state.isMonitoring = true;
             elements.monitorToggle.textContent = '⏸️ Stop Monitoring';
             elements.monitorToggle.className = 'btn btn-danger';
             showToast('Monitoring started');
+            updateStatus();
         }
-        updateStatus();
     } catch (error) {
         console.error('Error toggling monitoring:', error);
         showToast('Error toggling monitoring', 'error');
@@ -354,10 +474,22 @@ function loadSettingsForm() {
 // Save settings
 async function saveSettings() {
     try {
+        // Get scheduled days from checkboxes
+        const scheduleDays = [];
+        document.querySelectorAll('.day-checkbox input[type="checkbox"]:checked').forEach(checkbox => {
+            scheduleDays.push(parseInt(checkbox.dataset.day));
+        });
+        
         const newSettings = {
             pin: elements.pinInput.value,
             unlockDuration: parseInt(elements.unlockDuration.value),
-            chromeExtensionEnabled: elements.chromeExtensionToggle.checked
+            chromeExtensionEnabled: elements.chromeExtensionToggle.checked,
+            scheduledMonitoringEnabled: elements.scheduledMonitoringToggle.checked,
+            scheduleStartTime: elements.scheduleStartTime.value,
+            scheduleEndTime: elements.scheduleEndTime.value,
+            scheduleDays: scheduleDays,
+            autoStartScheduledMonitoring: elements.autoStartScheduledMonitoring.checked,
+            autoRestartMonitoring: elements.autoRestartMonitoringToggle.checked
         };
         
         if (!newSettings.pin || newSettings.pin.length !== 5 || !/^\d{5}$/.test(newSettings.pin)) {
@@ -370,9 +502,35 @@ async function saveSettings() {
             return;
         }
         
+        // Validate schedule settings if enabled
+        if (newSettings.scheduledMonitoringEnabled) {
+            if (!newSettings.scheduleStartTime || !newSettings.scheduleEndTime) {
+                showToast('Please set both start and end times for scheduled monitoring', 'error');
+                return;
+            }
+            
+            if (scheduleDays.length === 0) {
+                showToast('Please select at least one day for scheduled monitoring', 'error');
+                return;
+            }
+            
+            if (!validateScheduleTimes()) {
+                return;
+            }
+        }
+        
+        console.log('🔧 Saving settings:', newSettings);
         await ipcRenderer.invoke('set-settings', newSettings);
         state.settings = newSettings;
         configureUIForChromeExtension();
+        
+        // Update schedule status after saving
+        await updateScheduleStatus();
+        
+        // Refresh the app with new configuration
+        await loadData();
+        render();
+        
         showToast('Settings saved successfully');
     } catch (error) {
         console.error('Error saving settings:', error);
@@ -398,6 +556,7 @@ function render() {
     renderLockedApps();
     renderAvailableApps();
     renderBlockedWebsites();
+    loadSettingsForm();
     updateStatus();
     updateServerStatus('checking');
     
@@ -513,6 +672,7 @@ function showToast(message, type = 'success') {
 let pendingAction = null;
 
 function requestMasterPasswordForAction(action) {
+    console.log('🔑 Requesting master password for action:', action);
     pendingAction = action;
     showMasterPasswordModal();
 }
@@ -526,41 +686,226 @@ function showMasterPasswordModal() {
 function hideMasterPasswordModal() {
     elements.masterPasswordModal.classList.remove('show');
     elements.modalMasterPasswordInput.value = '';
-    pendingAction = null;
+    // Don't clear pendingAction here - do it after executing the action
 }
 
 async function verifyMasterPasswordForAction() {
+    console.log('🔍 verifyMasterPasswordForAction() called');
+    console.log('🎯 Current pendingAction:', pendingAction);
+    
     const password = elements.modalMasterPasswordInput.value.trim();
     
     if (!password) {
+        console.log('❌ No password entered');
         showToast('Please enter your master password', 'error');
         elements.modalMasterPasswordInput.focus();
         return;
     }
-    
+
     try {
+        console.log('🚀 Calling verify-master-password...');
         const result = await ipcRenderer.invoke('verify-master-password', password);
+        console.log('📋 verify-master-password result:', result);
         
         if (result.success) {
+            console.log('🔓 Master password verified, executing action:', pendingAction);
             hideMasterPasswordModal();
             
             // Execute the pending action
             if (pendingAction === 'save') {
+                console.log('📝 Calling saveSettings()...');
                 await saveSettings();
             } else if (pendingAction === 'reset') {
+                console.log('🔄 Calling resetSettings()...');
                 await resetSettings();
+            } else {
+                console.log('⚠️ Unknown pendingAction:', pendingAction);
             }
             
             pendingAction = null;
         } else {
+            console.log('❌ Invalid master password');
             showToast('Invalid master password', 'error');
             elements.modalMasterPasswordInput.value = '';
             elements.modalMasterPasswordInput.focus();
         }
     } catch (error) {
-        console.error('Error verifying master password:', error);
+        console.error('💥 Error in verifyMasterPasswordForAction:', error);
         showToast('Failed to verify master password', 'error');
         elements.modalMasterPasswordInput.focus();
+    }
+}
+
+// PIN Verification Modal Functions
+function showPinVerificationModal() {
+    elements.pinVerificationModal.classList.add('show');
+    elements.modalPinInput.value = '';
+    elements.modalPinInput.focus();
+}
+
+function hidePinVerificationModal() {
+    elements.pinVerificationModal.classList.remove('show');
+    elements.modalPinInput.value = '';
+}
+
+async function verifyPinForStopMonitoring() {
+    const pin = elements.modalPinInput.value.trim();
+    
+    if (!pin) {
+        showToast('Please enter your PIN', 'error');
+        elements.modalPinInput.focus();
+        return;
+    }
+    
+    if (pin.length !== 5 || !/^\d{5}$/.test(pin)) {
+        showToast('PIN must be exactly 5 digits', 'error');
+        elements.modalPinInput.focus();
+        return;
+    }
+    
+    try {
+        const result = await ipcRenderer.invoke('stop-monitoring', pin);
+        
+        if (result.success) {
+            hidePinVerificationModal();
+            state.isMonitoring = false;
+            elements.monitorToggle.textContent = '▶️ Start Monitoring';
+            elements.monitorToggle.className = 'btn btn-primary';
+            showToast('Monitoring stopped successfully');
+            updateStatus();
+        } else {
+            showToast(result.error || 'Failed to verify PIN', 'error');
+            elements.modalPinInput.value = '';
+            elements.modalPinInput.focus();
+        }
+    } catch (error) {
+        console.error('Error verifying PIN for stop monitoring:', error);
+        showToast('Failed to verify PIN', 'error');
+        elements.modalPinInput.focus();
+    }
+}
+
+// Scheduled Monitoring Functions
+function toggleScheduleSettings() {
+    const isEnabled = elements.scheduledMonitoringToggle.checked;
+    elements.scheduleSettings.classList.toggle('enabled', isEnabled);
+    
+    if (isEnabled) {
+        elements.scheduleSettings.style.opacity = '1';
+        elements.scheduleSettings.style.pointerEvents = 'auto';
+    } else {
+        elements.scheduleSettings.style.opacity = '0.6';
+        elements.scheduleSettings.style.pointerEvents = 'none';
+    }
+}
+
+function validateScheduleTimes() {
+    const startTime = elements.scheduleStartTime.value;
+    const endTime = elements.scheduleEndTime.value;
+    
+    if (startTime && endTime) {
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        
+        // Allow overnight schedules (e.g., 22:00 to 06:00)
+        if (start.getTime() === end.getTime()) {
+            showToast('Start and end times cannot be the same', 'error');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function updateScheduleDays() {
+    // This function is called when day checkboxes change
+    // The actual saving happens when the settings are saved
+}
+
+async function loadScheduleSettings() {
+    try {
+        const settings = await ipcRenderer.invoke('get-settings');
+        
+        // Update UI with current settings
+        elements.scheduledMonitoringToggle.checked = settings.scheduledMonitoringEnabled || false;
+        elements.scheduleStartTime.value = settings.scheduleStartTime || '09:00';
+        elements.scheduleEndTime.value = settings.scheduleEndTime || '17:00';
+        elements.autoStartScheduledMonitoring.checked = settings.autoStartScheduledMonitoring !== false;
+        elements.autoRestartMonitoringToggle.checked = settings.autoRestartMonitoring !== false;
+        
+        // Update day checkboxes
+        const scheduleDays = settings.scheduleDays || [1, 2, 3, 4, 5];
+        document.querySelectorAll('.day-checkbox input[type="checkbox"]').forEach(checkbox => {
+            const day = parseInt(checkbox.dataset.day);
+            checkbox.checked = scheduleDays.includes(day);
+        });
+        
+        // Update schedule settings visibility
+        toggleScheduleSettings();
+        
+        // Update schedule status
+        await updateScheduleStatus();
+        
+    } catch (error) {
+        console.error('Error loading schedule settings:', error);
+        showToast('Error loading schedule settings', 'error');
+    }
+}
+
+async function updateScheduleStatus() {
+    try {
+        const status = await ipcRenderer.invoke('get-schedule-status');
+        
+        if (status.enabled) {
+            if (status.inScheduledHours) {
+                elements.scheduleStatusText.textContent = '🟢 Currently in scheduled hours';
+                elements.scheduleStatusText.style.color = '#22c55e';
+            } else {
+                elements.scheduleStatusText.textContent = '🔴 Outside scheduled hours';
+                elements.scheduleStatusText.style.color = '#ef4444';
+            }
+            
+            // Calculate next event
+            const now = new Date();
+            const currentDay = now.getDay();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            
+            let nextEventText = '';
+            if (status.inScheduledHours) {
+                nextEventText = `Monitoring ends at ${status.endTime}`;
+            } else {
+                // Find next start time
+                const today = status.scheduleDays.includes(currentDay);
+                if (today) {
+                    const [startHour, startMin] = status.startTime.split(':').map(Number);
+                    const startTime = startHour * 60 + startMin;
+                    if (currentTime < startTime) {
+                        nextEventText = `Monitoring starts today at ${status.startTime}`;
+                    }
+                }
+                
+                if (!nextEventText) {
+                    // Find next scheduled day
+                    for (let i = 1; i <= 7; i++) {
+                        const nextDay = (currentDay + i) % 7;
+                        if (status.scheduleDays.includes(nextDay)) {
+                            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                            nextEventText = `Next: ${dayNames[nextDay]} at ${status.startTime}`;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            elements.nextScheduleEvent.textContent = nextEventText;
+        } else {
+            elements.scheduleStatusText.textContent = '⚪ Scheduled monitoring disabled';
+            elements.scheduleStatusText.style.color = '#6b7280';
+            elements.nextScheduleEvent.textContent = '';
+        }
+        
+    } catch (error) {
+        console.error('Error updating schedule status:', error);
     }
 }
 
@@ -938,3 +1283,105 @@ window.removeWebsite = removeWebsite;
 document.addEventListener('DOMContentLoaded', init);
 
 console.log('🚀 LockIt renderer loaded');
+
+// Restore monitoring state if it was previously active
+async function restoreMonitoringStateIfNeeded() {
+    try {
+        // Get current monitoring status from main process
+        const debugInfo = await ipcRenderer.invoke('get-debug-info');
+        const isCurrentlyMonitoring = debugInfo.isMonitoring;
+        
+        // Get settings to check auto-restart preference and previous state
+        const settings = await ipcRenderer.invoke('get-settings');
+        
+        console.log('🔍 Checking monitoring status:');
+        console.log('  - Currently monitoring:', isCurrentlyMonitoring);
+        console.log('  - Auto-restart enabled:', settings.autoRestartMonitoring);
+        console.log('  - Was previously enabled:', settings.wasMonitoringEnabled);
+        
+        // Update UI state to match actual monitoring state
+        state.isMonitoring = isCurrentlyMonitoring;
+        
+        // AGGRESSIVE RESTART: If monitoring was previously enabled and auto-restart is on, ALWAYS restart
+        if (!isCurrentlyMonitoring && settings.wasMonitoringEnabled && settings.autoRestartMonitoring) {
+            console.log('🚀 AGGRESSIVE RESTART: Monitoring was previously active, FORCE restarting now (ignoring shutdown type)...');
+            try {
+                await ipcRenderer.invoke('start-monitoring');
+                state.isMonitoring = true;
+                elements.monitorToggle.textContent = '⏸️ Stop Monitoring';
+                elements.monitorToggle.className = 'btn btn-danger';
+                showToast('🔄 Monitoring FORCE-restarted - was previously active', 'info');
+                console.log('✅ Monitoring successfully FORCE-restarted');
+            } catch (error) {
+                console.error('❌ Failed to FORCE restart monitoring:', error);
+                showToast('⚠️ Failed to auto-restart monitoring', 'warning');
+            }
+        } else {
+            // Update UI elements to reflect current state
+            if (isCurrentlyMonitoring) {
+                elements.monitorToggle.textContent = '⏸️ Stop Monitoring';
+                elements.monitorToggle.className = 'btn btn-danger';
+                console.log('✅ Monitoring was already active - UI state restored');
+            } else {
+                elements.monitorToggle.textContent = '▶️ Start Monitoring';
+                elements.monitorToggle.className = 'btn btn-primary';
+                console.log('ℹ️ Monitoring was not active and should not be restarted');
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Error restoring monitoring state:', error);
+        // Default to not monitoring if we can't determine the state
+        state.isMonitoring = false;
+        elements.monitorToggle.textContent = '▶️ Start Monitoring';
+        elements.monitorToggle.className = 'btn btn-primary';
+        showToast('⚠️ Error checking monitoring state', 'warning');
+    }
+}
+
+// Enforce monitoring state - ensure it's active if it should be
+async function enforceMonitoringState() {
+    try {
+        const settings = await ipcRenderer.invoke('get-settings');
+        
+        // Only enforce if auto-restart is enabled
+        if (!settings.autoRestartMonitoring) {
+            return;
+        }
+        
+        const debugInfo = await ipcRenderer.invoke('get-debug-info');
+        const isCurrentlyMonitoring = debugInfo.isMonitoring;
+        
+        // AGGRESSIVE ENFORCEMENT: If monitoring was previously enabled but is not currently active, restart it
+        if (!isCurrentlyMonitoring && settings.wasMonitoringEnabled) {
+            console.log('🚨 AGGRESSIVE ENFORCEMENT: Monitoring should be active but isn\'t - FORCE restarting...');
+            try {
+                await ipcRenderer.invoke('start-monitoring');
+                state.isMonitoring = true;
+                elements.monitorToggle.textContent = '⏸️ Stop Monitoring';
+                elements.monitorToggle.className = 'btn btn-danger';
+                updateStatus();
+                showToast('🔄 Monitoring FORCE-restarted - enforcement active', 'info');
+                console.log('✅ Monitoring aggressive enforcement successful');
+            } catch (error) {
+                console.error('❌ Monitoring aggressive enforcement failed:', error);
+            }
+        } else if (state.isMonitoring !== isCurrentlyMonitoring) {
+            // Sync UI state with actual state
+            state.isMonitoring = isCurrentlyMonitoring;
+            if (isCurrentlyMonitoring) {
+                elements.monitorToggle.textContent = '⏸️ Stop Monitoring';
+                elements.monitorToggle.className = 'btn btn-danger';
+            } else {
+                elements.monitorToggle.textContent = '▶️ Start Monitoring';
+                elements.monitorToggle.className = 'btn btn-primary';
+            }
+            updateStatus();
+        }
+        
+    } catch (error) {
+        console.error('❌ Error in monitoring enforcement:', error);
+    }
+}
+
+// Cache frequently used DOM elements

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LockIt Chrome Extension",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Blocks access to locked websites by communicating with LockIt desktop app",
   "permissions": [
     "tabs",
